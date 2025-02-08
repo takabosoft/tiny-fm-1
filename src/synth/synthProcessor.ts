@@ -4,41 +4,70 @@ function midiNoteToFrequency(note: MidiNote): number {
     return 440 * Math.pow(2, (note - MidiNote.A4) / 12);
 }
 
+function convertModulationAmplitude(v: number): number {
+    return v * v / 4800 * PI2;
+}
+
 const PI2 = 2 * Math.PI;
 
-class FMModulator {
+class Oscillator {
     private phase = 0;
-    private delta: number;
-    constructor(frequency: number, private readonly modulationIndex: number, private readonly cascade?: FMModulator) {
-        this.delta = frequency  / sampleRate;
+    private readonly delta: number;
+
+    constructor(frequency: number) {
+        this.delta = frequency / sampleRate;
     }
 
-    get nextValue(): number {
+    getValue(fm = 0): number {
+        return Math.sin(this.phase * PI2 + fm);
+    }
+
+    addPhase() {  
         this.phase += this.delta;
         this.phase %= 1;
-        return Math.sin(this.phase * PI2 + (this.cascade?.nextValue ?? 0)) * this.modulationIndex;
     }
 }
 
+let testVal = 0;
+
 /** キーボードの1音に対応する音を管理するものです。 */
 class SynthNote {
-    /** 位相（0.0～1.0） */
-    private phase = 0;
-    private readonly delta: number;
-    private fm1: FMModulator;
-    //private fm2: FMModulator;
+    private oscA: Oscillator;
+    private oscB: Oscillator;
+    private oscC: Oscillator;
+    private oscD: Oscillator;
+    private oscE: Oscillator;
+    private oscF: Oscillator;
 
     constructor(note: number) {
         const freq = midiNoteToFrequency(note);
-        this.delta = freq / sampleRate;
-        this.fm1 = new FMModulator(freq * 4, 1/*, new FMModulator(freq * 1, 3)*/);
-        //this.fm2 = new FMModulator(freq * 0.25, 2);
+        this.oscA = new Oscillator(freq * 2 - 0.6);
+        this.oscB = new Oscillator(freq);
+        this.oscC = new Oscillator(freq * 2 + 0.4);
+        this.oscD = new Oscillator(freq);
+        this.oscE = new Oscillator(freq * 5.4969 + 2000);
+        this.oscF = new Oscillator(freq * 2);
     }
 
     get sample(): number {
-        this.phase += this.delta; // 波形の位相を進める
-        this.phase %= 1;
-        return Math.sin(this.phase * PI2 + this.fm1.nextValue /*+ this.fm2.nextValue*/);
+        this.oscA.addPhase();
+        this.oscB.addPhase();
+        this.oscC.addPhase();
+        this.oscD.addPhase();
+        this.oscE.addPhase();
+        this.oscF.addPhase();
+
+        return (
+            this.oscA.getValue() * 0.43 + 
+            this.oscB.getValue(this.oscA.getValue() * convertModulationAmplitude(27)) * 0.41 +
+            this.oscC.getValue() * 0.20 +
+            this.oscD.getValue(this.oscC.getValue() * convertModulationAmplitude(33)) * 0.52 +
+            this.oscF.getValue(this.oscE.getValue() * convertModulationAmplitude(27)) * 0.16
+        );
+
+        /*return (
+            this.oscB.getValue(this.oscA.getValue() * convertModulationAmplitude(55))
+        );*/
     }
 }
 
@@ -61,7 +90,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 wave += note.sample;
             }
 
-            output[0][i] = wave * 0.1;
+            output[0][i] = wave * 0.2;
         }
 
         return true;
@@ -77,6 +106,9 @@ export class SynthProcessor extends AudioWorkletProcessor {
                     break;
                 case "NoteOff":
                     this.noteOff(msg.note);
+                    break;
+                case "Test":
+                    testVal = msg.val;
                     break;
             }
         };

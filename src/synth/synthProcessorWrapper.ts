@@ -15,4 +15,8 @@ export class SynthProcessorWrapper {
     noteOff(note: MidiNote) {
         this.send({ type: "NoteOff", note });
     }
+
+    test(val: number) {
+        this.send({ type: "Test", val });
+    }
 }
