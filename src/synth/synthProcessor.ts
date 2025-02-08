@@ -12,52 +12,66 @@ const PI2 = 2 * Math.PI;
 
 class Oscillator {
     private phase = 0;
-    private readonly delta: number;
 
-    constructor(frequency: number) {
-        this.delta = frequency / sampleRate;
+    constructor(private readonly ratio = 1, private readonly offset = 0) {
     }
 
     getValue(fm = 0): number {
         return Math.sin(this.phase * PI2 + fm);
     }
 
-    addPhase() {  
-        this.phase += this.delta;
+    addPhase(baseFrequency: number) {  
+        this.phase += (baseFrequency * this.ratio + this.offset) / sampleRate;
         this.phase %= 1;
     }
 }
 
 let testVal = 0;
 
+/**
+ * 線形パンニングです。
+ * @param input モノラル入力
+ * @param pan パン(-1.0～1.0)
+ * @param output 出力
+ */
+function panning(input: number, pan: number, output: number[]) {
+    output[0] += input * (1 - pan) / 2;
+    output[1] += input * (1 + pan) / 2;
+}
+
 /** キーボードの1音に対応する音を管理するものです。 */
 class SynthNote {
+    private frequency: number; 
     private oscA: Oscillator;
     private oscB: Oscillator;
     private oscC: Oscillator;
     private oscD: Oscillator;
     private oscE: Oscillator;
     private oscF: Oscillator;
+    private mod = new Oscillator(1, 0);
 
     constructor(note: number) {
-        const freq = midiNoteToFrequency(note);
-        this.oscA = new Oscillator(freq * 2 - 0.6);
-        this.oscB = new Oscillator(freq);
-        this.oscC = new Oscillator(freq * 2 + 0.4);
-        this.oscD = new Oscillator(freq);
-        this.oscE = new Oscillator(freq * 5.4969 + 2000);
-        this.oscF = new Oscillator(freq * 2);
+        this.frequency = midiNoteToFrequency(note);
+        this.oscA = new Oscillator(2, -0.6);
+        this.oscB = new Oscillator();
+        this.oscC = new Oscillator(2, 0.4);
+        this.oscD = new Oscillator();
+        this.oscE = new Oscillator(5.4969, 2000);
+        this.oscF = new Oscillator(2);
     }
 
-    get sample(): number {
-        this.oscA.addPhase();
-        this.oscB.addPhase();
-        this.oscC.addPhase();
-        this.oscD.addPhase();
-        this.oscE.addPhase();
-        this.oscF.addPhase();
+    generateSample(output: number[]): void {
+        this.mod.addPhase(5);
+        const freq = this.frequency + this.mod.getValue() * 2;
 
-        return (
+        this.oscA.addPhase(freq);
+        this.oscB.addPhase(freq);
+        this.oscC.addPhase(freq);
+        this.oscD.addPhase(freq);
+        this.oscE.addPhase(freq);
+        this.oscF.addPhase(freq);
+
+        const val = (
             this.oscA.getValue() * 0.43 + 
             this.oscB.getValue(this.oscA.getValue() * convertModulationAmplitude(27)) * 0.41 +
             this.oscC.getValue() * 0.20 +
@@ -65,9 +79,8 @@ class SynthNote {
             this.oscF.getValue(this.oscE.getValue() * convertModulationAmplitude(27)) * 0.16
         );
 
-        /*return (
-            this.oscB.getValue(this.oscA.getValue() * convertModulationAmplitude(55))
-        );*/
+        //output[0] += val;
+        panning(val, testVal, output);
     }
 }
 
@@ -80,17 +93,20 @@ export class SynthProcessor extends AudioWorkletProcessor {
     }
 
     process(inputs: Float32Array[][], outputs: Float32Array[][], parameters: Record<string, Float32Array>): boolean {
-        const output = outputs[0]; // 1つの出力チャネル
+        const output = outputs[0];
+        const leftChannel = output[0];
+        const rightChannel = output[1];
+        const masterVolume = 0.2;
 
-        // 各フレームごとにサイン波を生成
-        for (let i = 0; i < output[0].length; i++) {
+        for (let i = 0; i < leftChannel.length; i++) {
 
-            let wave = 0;
+            const wave = [0, 0];
             for (const note of this.synthNoteMap.values()) {
-                wave += note.sample;
+                note.generateSample(wave);
             }
 
-            output[0][i] = wave * 0.2;
+            leftChannel[i] = wave[0] * masterVolume;
+            rightChannel[i] = wave[1] * masterVolume;
         }
 
         return true;
@@ -99,7 +115,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
     private listenMessages() {
         this.port.onmessage = e => {
             const msg = e.data as SynthMessage;
-            console.log(e.data);
+            //console.log(e.data);
             switch (msg.type) {
                 case "NoteOn":
                     this.noteOn(msg.note);
