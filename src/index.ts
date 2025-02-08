@@ -38,14 +38,14 @@ class PageController {
     async start() {
         document.addEventListener("click", () => this.audioContext.resume(), true);
         await this.audioContext.audioWorklet.addModule("synth.bundle.js");
-        const myProcessorNode = new AudioWorkletNode(this.audioContext, "SynthProcessor");
+        const myProcessorNode = new AudioWorkletNode(this.audioContext, "SynthProcessor", { outputChannelCount: [2] });
         myProcessorNode.connect(this.audioContext.destination);
         this.synthProcessor = new SynthProcessorWrapper(myProcessorNode);
         //this.processor.noteOn(MidiNote.A4);
 
-        const slider = $(`<input type="range" min="0.0" max="20" step="0.01">`).on("input", () => {
-            console.log(slider.val() ?? 0);
-            this.synthProcessor?.test(slider.val() as number);
+        const slider = $(`<input type="range" min="-1.0" max="1.0" step="0.01" style="width: 200px;">`).on("input", () => {
+            //console.log(slider.val() ?? 0);
+            this.synthProcessor?.test(parseFloat(slider.val() + ""));
         })
         $("body").append($(`<br>`), slider);
 
