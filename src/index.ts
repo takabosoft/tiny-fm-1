@@ -43,6 +43,12 @@ class PageController {
         this.synthProcessor = new SynthProcessorWrapper(myProcessorNode);
         //this.processor.noteOn(MidiNote.A4);
 
+        const slider = $(`<input type="range" min="0.0" max="20" step="0.01">`).on("input", () => {
+            console.log(slider.val() ?? 0);
+            this.synthProcessor?.test(slider.val() as number);
+        })
+        $("body").append($(`<br>`), slider);
+
         document.addEventListener("keydown", e => {
             if (this.keyNoteStateMap.has(e.key)) { return; } // キーボード連打阻止
             let note = this.keyNoteDefaultMap.get(e.key);
