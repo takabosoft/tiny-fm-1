@@ -6,20 +6,39 @@ function midiNoteToFrequency(note: MidiNote): number {
 
 const PI2 = 2 * Math.PI;
 
+class FMModulator {
+    private phase = 0;
+    private delta: number;
+    constructor(frequency: number, private readonly modulationIndex: number, private readonly cascade?: FMModulator) {
+        this.delta = frequency  / sampleRate;
+    }
+
+    get nextValue(): number {
+        this.phase += this.delta;
+        this.phase %= 1;
+        return Math.sin(this.phase * PI2 + (this.cascade?.nextValue ?? 0)) * this.modulationIndex;
+    }
+}
+
 /** キーボードの1音に対応する音を管理するものです。 */
 class SynthNote {
     /** 位相（0.0～1.0） */
     private phase = 0;
-    private delta: number;
+    private readonly delta: number;
+    private fm1: FMModulator;
+    //private fm2: FMModulator;
 
     constructor(note: number) {
-        this.delta = midiNoteToFrequency(note) / sampleRate;
+        const freq = midiNoteToFrequency(note);
+        this.delta = freq / sampleRate;
+        this.fm1 = new FMModulator(freq * 4, 1/*, new FMModulator(freq * 1, 3)*/);
+        //this.fm2 = new FMModulator(freq * 0.25, 2);
     }
 
     get sample(): number {
         this.phase += this.delta; // 波形の位相を進める
         this.phase %= 1;
-        return Math.sin(this.phase * PI2);
+        return Math.sin(this.phase * PI2 + this.fm1.nextValue /*+ this.fm2.nextValue*/);
     }
 }
 
