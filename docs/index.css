@@ -1,1 +1,1 @@
-body{font-family:"Noto Sans JP",serif}
+body{font-family:"Noto Sans JP",serif}.virtual-keyboard-wrapper{overflow-x:auto;border:1px solid gray}.virtual-keyboard{background:#000;position:relative;box-sizing:content-box;touch-action:manipulation}.virtual-keyboard .white-key,.virtual-keyboard .black-key{position:absolute}.virtual-keyboard .white-key{z-index:0}.virtual-keyboard .white-key::before{content:"";position:absolute;left:0;top:0;right:1px;bottom:3px;background:#fff}.virtual-keyboard .black-key{z-index:1;background:#000}

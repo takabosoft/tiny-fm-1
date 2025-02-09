@@ -4,6 +4,7 @@
  * Release Build: npx webpack --mode=production
  */
 
+import { VirtualKeyboard } from "./components/virtualKeyboard";
 import { MidiNote } from "./synth/synthMessage";
 import { SynthProcessorWrapper } from "./synth/synthProcessorWrapper";
 
@@ -41,13 +42,18 @@ class PageController {
         const myProcessorNode = new AudioWorkletNode(this.audioContext, "SynthProcessor", { outputChannelCount: [2] });
         myProcessorNode.connect(this.audioContext.destination);
         this.synthProcessor = new SynthProcessorWrapper(myProcessorNode);
-        //this.processor.noteOn(MidiNote.A4);
 
-        const slider = $(`<input type="range" min="-1.0" max="1.0" step="0.01" style="width: 200px;">`).on("input", () => {
+        /*const slider = $(`<input type="range" min="-1.0" max="1.0" step="0.01" style="width: 200px;">`).on("input", () => {
             //console.log(slider.val() ?? 0);
             this.synthProcessor?.test(parseFloat(slider.val() + ""));
         })
-        $("body").append($(`<br>`), slider);
+        $("body").append($(`<br>`), slider);*/
+
+        const keyboard = new VirtualKeyboard({
+            height: 200,
+            //minNote: MidiNote.A_SHARP_MINUS_1,
+        });
+        $("body").append($(`<br>`), $(`<div class="virtual-keyboard-wrapper">`).append(keyboard.element));
 
         document.addEventListener("keydown", e => {
             if (this.keyNoteStateMap.has(e.key)) { return; } // キーボード連打阻止
