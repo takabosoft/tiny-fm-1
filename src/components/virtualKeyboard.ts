@@ -1,4 +1,5 @@
 import { Rect } from "../geometries/rect";
+import { Vec2 } from "../geometries/vec2";
 import { MidiNote } from "../synth/synthMessage";
 import { Component } from "./component";
 
@@ -7,6 +8,8 @@ export interface VirtualKeyboardOptions {
     readonly minNote?: MidiNote,
     readonly maxNote?: MidiNote,
     readonly whiteKeyWidth?: number;
+    readonly onKeyDown?: (note: MidiNote) => void;
+    readonly onKeyUp?: (note: MidiNote) => void;
 }
 
 function isWhiteKey(note: MidiNote): boolean {
@@ -45,7 +48,10 @@ export class VirtualKeyboard extends Component {
     private readonly maxNote: MidiNote;
     private readonly whiteKeyWidth: number;
     private readonly blackKeyWidth: number;
-    private keys: Key[] = [];
+    private readonly onKeyDown?: (note: MidiNote) => void;
+    private readonly onKeyUp?: (note: MidiNote) => void;
+    private readonly keyMap = new Map<MidiNote, Key>();
+    private readonly selectedKeySet = new Set<MidiNote>();
 
     constructor(options: VirtualKeyboardOptions = {}) {
         super();
@@ -55,32 +61,36 @@ export class VirtualKeyboard extends Component {
         this.maxNote = options.maxNote ?? 127;
         this.whiteKeyWidth = options.whiteKeyWidth ?? 32;
         this.blackKeyWidth = Math.ceil(this.whiteKeyWidth * 0.8);
+        this.onKeyDown = options.onKeyDown;
+        this.onKeyUp = options.onKeyUp;
 
         this.element = $(`<div class="virtual-keyboard">`).css({
             height: this.height,
         });
 
         this.layout();
+        this.listenPointerEvents();
     }
 
     private layout() {
         this.element.empty();
-        this.keys = [];
+        this.keyMap.clear();
 
         const firstWhiteKeyNote = isWhiteKey(this.minNote) ? this.minNote : this.minNote + 1;
         const firstOctave = Math.floor(firstWhiteKeyNote / 12);
         let x = -calcWhiteIndex(firstWhiteKeyNote) * this.whiteKeyWidth;
-        //console.log(x)
-
-        const appendKey = (key: Key) => {
-            this.keys.push(key);
-            this.element.append(key.element);
-        };
 
         for (let note = firstOctave * 12; note <= this.maxNote; note++) {
+            const appendKey = (key: Key) => {
+                this.keyMap.set(note, key);
+                this.element.append(key.element);
+                key.isSelected = this.selectedKeySet.has(note);
+            };
+
             if (isWhiteKey(note)) {
                 if (note >= this.minNote) {
-                    appendKey(new WhiteKey(new Rect(x, 0, this.whiteKeyWidth, this.height)));
+                    const text = note % 12 == 0 ? `C${note / 12 - 1}` : "";
+                    appendKey(new WhiteKey(new Rect(x, 0, this.whiteKeyWidth, this.height), text));
                 }
                 x += this.whiteKeyWidth;
             } else {
@@ -105,6 +115,95 @@ export class VirtualKeyboard extends Component {
             width: x,
         })
     }
+
+    /**
+     * キーの当たり判定。
+     * - HACK: 総当たりなので改善の余地有り（本実験ではそこまで追求しない）
+     * @param e 
+     * @returns 
+     */
+    private hitTest(e: PointerEvent): MidiNote | undefined {
+        const ptOrg = Vec2.fromPointerEvent(e, this.element);
+        const pt = new Vec2(ptOrg.x, Math.min(Math.max(ptOrg.y, 0), this.height - 1)); // ドラッグ時に上下に突き抜けないようにクランプ
+
+        let res: MidiNote | undefined;
+        for (const [note, key] of this.keyMap.entries()) {
+            if (key.rect.isPointInside(pt)) {
+                if (!isWhiteKey(note)) {
+                    return note;
+                }
+                res = note;
+            }
+        }
+        return res;
+    }
+
+    /** 
+     * ポインターイベントを処理します。
+     * - マウス左ボタン、タッチに対応
+     * - グリッサンドに対応
+     * - 選択状態（押下）はここでは処理しません（イベントを発火するのでそれ経由で処理してもらう）。
+     */
+    private listenPointerEvents(): void {
+        const el = this.element[0];
+
+        const pointerIdToKey = new Map<number, MidiNote>();
+
+        el.addEventListener("pointerdown", e => {
+            //console.log("pointerdown", e.pointerId, e.button, e.pointerType);
+            if (el.hasPointerCapture(e.pointerId)) { return; }
+            if (e.pointerType == "button" && e.button != 0) { return; }
+            const note = this.hitTest(e);
+            if (note != null) {
+                el.setPointerCapture(e.pointerId);
+                pointerIdToKey.set(e.pointerId, note);
+                this.onKeyDown?.(note);
+            }
+        });
+
+        el.addEventListener("pointermove", e => {
+            if (el.hasPointerCapture(e.pointerId)) {
+                //console.log("pointermove", e.pointerId, e.button);
+                const oldNote = pointerIdToKey.get(e.pointerId);
+                const newNote = this.hitTest(e);
+                if (oldNote != null && newNote != null && oldNote != newNote) {
+                    //console.log("グリッサンド検出");
+                    pointerIdToKey.set(e.pointerId, newNote);
+                    this.onKeyUp?.(oldNote);
+                    this.onKeyDown?.(newNote);
+                }
+            }
+        });
+
+        el.addEventListener("lostpointercapture", e => {
+            //console.log("lostpointercapture", e.pointerId, e.button);
+            const note = pointerIdToKey.get(e.pointerId);
+            if (note != null) {
+                pointerIdToKey.delete(e.pointerId);
+                this.onKeyUp?.(note);
+            }
+        });
+    }
+
+    /** 指定したキーが見えるようにスクロールします。 */
+    visibleKey(note: MidiNote): void {
+        const key = this.keyMap.get(note);
+        if (key == null) { return; }
+        key.element[0].scrollIntoView({ inline: "center" });
+    }
+
+    /** 選択状態を変更します。選択＝押された */
+    selectKey(note: MidiNote, isSelected: boolean): void {
+        const key = this.keyMap.get(note);
+        if (key == null) { return; }
+
+        if (isSelected) {
+            this.selectedKeySet.add(note);
+        } else {
+            this.selectedKeySet.delete(note);
+        }
+        key.isSelected = isSelected;
+    }
 }
 
 class Key extends Component {
@@ -115,11 +214,18 @@ class Key extends Component {
             "--w": `${rect.width}px`,
         });
     }
+
+    set isSelected(sel: boolean) {
+        this.element.toggleClass("selected", sel);
+    }
 }
 
 class WhiteKey extends Key {
-    constructor(rect: Rect) {
+    constructor(rect: Rect, text: string) {
         super(rect, "white-key");
+        this.element.attr({
+            "data-text": text,
+        });
     }
 }
 

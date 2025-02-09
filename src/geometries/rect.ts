@@ -10,6 +10,10 @@ export class Rect {
     get center() { return new Vec2((this.left + this.right) / 2, (this.top + this.bottom) / 2); }
     get isEmpty() { return this.width <= 0 || this.height <= 0; }
 
+    isPointInside(pt: Vec2): boolean {
+        return pt.x >= this.left && pt.x < this.right && pt.y >= this.top && pt.y < this.bottom;
+    }
+
     toCss() {
         return {
             left: `${this.left}px`,
