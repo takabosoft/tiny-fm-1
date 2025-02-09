@@ -18,13 +18,13 @@ class PageController {
     private synthProcessor?: SynthProcessorWrapper;
     private readonly keyNoteDefaultMap = new Map<string, MidiNote>([
         // 白鍵（C3 ~ B3）
-        ["z", MidiNote.C3], ["x", MidiNote.D3], ["c", MidiNote.E3], 
-        ["v", MidiNote.F3], ["b", MidiNote.G3], ["n", MidiNote.A3], 
-        ["m", MidiNote.B3], 
-        
+        ["z", MidiNote.C3], ["x", MidiNote.D3], ["c", MidiNote.E3],
+        ["v", MidiNote.F3], ["b", MidiNote.G3], ["n", MidiNote.A3],
+        ["m", MidiNote.B3],
+
         // 黒鍵（C#3 ~ A#3）
-        ["s", MidiNote.C_SHARP_3], ["d", MidiNote.D_SHARP_3], 
-        ["g", MidiNote.F_SHARP_3], ["h", MidiNote.G_SHARP_3], 
+        ["s", MidiNote.C_SHARP_3], ["d", MidiNote.D_SHARP_3],
+        ["g", MidiNote.F_SHARP_3], ["h", MidiNote.G_SHARP_3],
         ["j", MidiNote.A_SHARP_3],
 
         // 高いオクターブ（C4 ~ E4）
@@ -33,7 +33,17 @@ class PageController {
         // 黒鍵（C#4 ~ D#4）
         ["l", MidiNote.C_SHARP_4], [";", MidiNote.D_SHARP_4],
     ]);
-    private readonly keyNoteStateMap = new Map<string, MidiNote>();
+    /** MIDI ON状態のノートをここで管理します。PCキーボード・マウスなど複数デバイスからありえない入力状態になるのを防ぎます。 */
+    private readonly midiNoteOnSet = new Set<MidiNote>();
+    /** PCキーボード情報 */
+    private readonly pcKeyNoteStateMap = new Map<string, MidiNote>();
+    /** 仮想キーボード */
+    private readonly virtualKeyboard = new VirtualKeyboard({
+        height: 200,
+        //minNote: MidiNote.A_SHARP_MINUS_1,
+        onKeyDown: note => this.noteOn(note),
+        onKeyUp: note => this.noteOff(note),
+    });
     private octaveShift = 1;
 
     async start() {
@@ -49,29 +59,45 @@ class PageController {
         })
         $("body").append($(`<br>`), slider);*/
 
-        const keyboard = new VirtualKeyboard({
-            height: 200,
-            //minNote: MidiNote.A_SHARP_MINUS_1,
-        });
-        $("body").append($(`<br>`), $(`<div class="virtual-keyboard-wrapper">`).append(keyboard.element));
 
+        $("body").append($(`<div class="virtual-keyboard-wrapper">`).append(this.virtualKeyboard.element));
+        this.virtualKeyboard.visibleKey(MidiNote.C4);
+
+        this.listenPCKeyboard();
+    }
+
+    private noteOn(note: MidiNote): void {
+        if (this.midiNoteOnSet.has(note)) { return; }
+        this.midiNoteOnSet.add(note);
+        this.synthProcessor?.noteOn(note);
+        this.virtualKeyboard.selectKey(note, true);
+    }
+
+    private noteOff(note: MidiNote): void {
+        if (!this.midiNoteOnSet.has(note)) { return; }
+        this.midiNoteOnSet.delete(note);
+        this.synthProcessor?.noteOff(note);
+        this.virtualKeyboard.selectKey(note, false);
+    }
+
+    private listenPCKeyboard(): void {
         document.addEventListener("keydown", e => {
-            if (this.keyNoteStateMap.has(e.key)) { return; } // キーボード連打阻止
+            if (this.pcKeyNoteStateMap.has(e.key)) { return; } // キーボード連打阻止
             let note = this.keyNoteDefaultMap.get(e.key);
             if (note != null) {
                 note += this.octaveShift * 12;
                 if (note >= 0 && note <= 127) {
-                    this.synthProcessor?.noteOn(note);
-                    this.keyNoteStateMap.set(e.key, note); // キーボードを押すときと離すときでNote#が変わる場合があり得るので保持しておく
+                    this.noteOn(note);
+                    this.pcKeyNoteStateMap.set(e.key, note); // キーボードを押すときと離すときでNote#が変わる場合があり得るので保持しておく
                 }
             }
         });
 
         document.addEventListener("keyup", e => {
-            const note = this.keyNoteStateMap.get(e.key);
+            const note = this.pcKeyNoteStateMap.get(e.key);
             if (note != null) {
-                this.synthProcessor?.noteOff(note);
-                this.keyNoteStateMap.delete(e.key);
+                this.noteOff(note);
+                this.pcKeyNoteStateMap.delete(e.key);
             }
         });
     }
