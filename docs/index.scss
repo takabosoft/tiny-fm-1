@@ -5,6 +5,7 @@ body {
 .virtual-keyboard-wrapper {
     overflow-x: auto;
     border: 1px solid gray;
+    position: relative;
 }
 
 .virtual-keyboard {
@@ -13,26 +14,74 @@ body {
     box-sizing: content-box;
     touch-action: manipulation;
 
+    &::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: -20px;
+        right: 0;
+        height: 20px;
+        z-index: 2;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 1);
+    }
+
     .white-key,
     .black-key {
         position: absolute;
+        box-sizing: border-box;
+        overflow: hidden;
     }
 
     .white-key {
+        --w: 0px;
         z-index: 0;
         &::before {
             content: "";
             position: absolute;
             left: 0;
-            top: 0;
-            right: 1px;
+            top: calc(var(--w) * -1);
+            right: 1px; // 縦線を出すために空けます
             bottom: 3px;
-            background: white;
+            background: linear-gradient(to bottom, rgba(240, 240, 240, 1), rgba(250, 250, 250, 1));
+            border-bottom-left-radius: calc(var(--w) * 0.08);
+            border-bottom-right-radius: calc(var(--w) * 0.08);
+            box-shadow: inset 0 0 calc(var(--w) * 0.08) rgba(0, 0, 0, 0.5);
         }
     }
 
     .black-key {
+        --w: 0px;
         z-index: 1;
-        background: black;
+        border: 1px solid black;
+        border-top-width: 0;
+        background: linear-gradient(to right, black 0%, white 40%, white 60%, black 100%);
+        border-bottom-left-radius: calc(var(--w) * 0.12);
+        border-bottom-right-radius: calc(var(--w) * 0.12);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        box-shadow: 0 1px 4px 0px rgba(0, 0, 0, 0.5);
+
+        &::before {
+            content: "";
+            box-sizing: border-box;
+            width: 75%;
+            flex-grow: 1;
+            border: 1px solid black;
+            border-bottom-left-radius: calc(var(--w) * 0.1);
+            border-bottom-right-radius: calc(var(--w) * 0.1);
+            background: linear-gradient(to bottom, rgba(61, 70, 74, 1), rgba(83, 87, 80, 1));
+            z-index: 1;
+        }
+
+        &::after {
+            content: "";
+            background: yellow;
+            height: 13%;
+            width: 100%;
+            clip-path: polygon(12% 0%, 88% 0%, 95% 100%, 5% 100%);
+            margin-top: -1px;
+            background: linear-gradient(to bottom, rgba(20, 20, 20, 1), rgba(60, 60, 60, 1));
+        }
     }
 }
