@@ -1,3 +1,38 @@
 body {
     font-family: "Noto Sans JP", serif;
 }
+
+.virtual-keyboard-wrapper {
+    overflow-x: auto;
+    border: 1px solid gray;
+}
+
+.virtual-keyboard {
+    background: black;
+    position: relative;
+    box-sizing: content-box;
+    touch-action: manipulation;
+
+    .white-key,
+    .black-key {
+        position: absolute;
+    }
+
+    .white-key {
+        z-index: 0;
+        &::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            right: 1px;
+            bottom: 3px;
+            background: white;
+        }
+    }
+
+    .black-key {
+        z-index: 1;
+        background: black;
+    }
+}
