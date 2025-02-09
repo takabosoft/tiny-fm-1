@@ -45,6 +45,7 @@ export class VirtualKeyboard extends Component {
     private readonly maxNote: MidiNote;
     private readonly whiteKeyWidth: number;
     private readonly blackKeyWidth: number;
+    private keys: Key[] = [];
 
     constructor(options: VirtualKeyboardOptions = {}) {
         super();
@@ -64,17 +65,22 @@ export class VirtualKeyboard extends Component {
 
     private layout() {
         this.element.empty();
+        this.keys = [];
 
         const firstWhiteKeyNote = isWhiteKey(this.minNote) ? this.minNote : this.minNote + 1;
         const firstOctave = Math.floor(firstWhiteKeyNote / 12);
         let x = -calcWhiteIndex(firstWhiteKeyNote) * this.whiteKeyWidth;
         //console.log(x)
 
+        const appendKey = (key: Key) => {
+            this.keys.push(key);
+            this.element.append(key.element);
+        };
+
         for (let note = firstOctave * 12; note <= this.maxNote; note++) {
             if (isWhiteKey(note)) {
                 if (note >= this.minNote) {
-                    const key = new WhiteKey(new Rect(x, 0, this.whiteKeyWidth, this.height));
-                    this.element.append(key.element);
+                    appendKey(new WhiteKey(new Rect(x, 0, this.whiteKeyWidth, this.height)));
                 }
                 x += this.whiteKeyWidth;
             } else {
@@ -91,8 +97,7 @@ export class VirtualKeyboard extends Component {
                         return 0;
                     })();
 
-                    const key = new BlackKey(new Rect(Math.round(x - this.blackKeyWidth / 2 + (offset * this.blackKeyWidth * 0.1)), 0, this.blackKeyWidth, Math.ceil(this.height * 0.6)));
-                    this.element.append(key.element);
+                    appendKey(new BlackKey(new Rect(Math.round(x - this.blackKeyWidth / 2 + (offset * this.blackKeyWidth * 0.1)), 0, this.blackKeyWidth, Math.ceil(this.height * 0.6))));
                 }
             }
         }
@@ -105,20 +110,21 @@ export class VirtualKeyboard extends Component {
 class Key extends Component {
     constructor(readonly rect: Rect, addClass: string) {
         super();
-        this.element = $(`<div>`).addClass(addClass).css(rect.toCss());
+        this.element = $(`<div>`).addClass(addClass).css({
+            ...rect.toCss(),
+            "--w": `${rect.width}px`,
+        });
     }
 }
 
 class WhiteKey extends Key {
     constructor(rect: Rect) {
         super(rect, "white-key");
-
     }
 }
 
 class BlackKey extends Key {
     constructor(rect: Rect) {
         super(rect, "black-key");
-
     }
 }
