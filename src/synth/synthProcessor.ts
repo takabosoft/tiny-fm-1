@@ -1,5 +1,8 @@
 import { MidiNote, SynthMessage } from "./synthMessage";
 
+const PI2 = 2 * Math.PI;
+let testVal = 0;
+
 function midiNoteToFrequency(note: MidiNote): number {
     return 440 * Math.pow(2, (note - MidiNote.A4) / 12);
 }
@@ -8,25 +11,13 @@ function convertModulationAmplitude(v: number): number {
     return v * v / 4800 * PI2;
 }
 
-const PI2 = 2 * Math.PI;
-
-class Oscillator {
-    private phase = 0;
-
-    constructor(private readonly ratio = 1, private readonly offset = 0) {
-    }
-
-    getValue(fm = 0): number {
-        return Math.sin(this.phase * PI2 + fm);
-    }
-
-    addPhase(baseFrequency: number) {  
-        this.phase += (baseFrequency * this.ratio + this.offset) / sampleRate;
-        this.phase %= 1;
-    }
+function convertModulationAmplitudeForFeedback(v: number): number {
+    return v * v / 9600 * PI2;
 }
 
-let testVal = 0;
+function convertPan(pan: number): number {
+    return pan / 99;
+}
 
 /**
  * 線形パンニングです。
@@ -39,48 +30,119 @@ function panning(input: number, pan: number, output: number[]) {
     output[1] += input * (1 + pan) / 2;
 }
 
+/** オペレーターの音色情報の型 */
+interface OperatorParams {
+    readonly frequencyRatio: number,
+    readonly frequencyOffsetHz: number,
+    /** モジューレータの振幅 */
+    readonly depths: readonly number[],
+    readonly volume: number,
+    readonly pan: number,
+}
+
+/** オペーレータの音色情報です。各ノートからは共通参照とします。 */
+let operatorParams: readonly OperatorParams[] = [
+    {
+        frequencyRatio: 2,
+        frequencyOffsetHz: -0.6,
+        depths: [0, 0, 0, 0, 0, 0],
+        volume: 0.39,
+        pan: convertPan(-21),
+    },
+    {
+        frequencyRatio: 1,
+        frequencyOffsetHz: 0,
+        depths: [convertModulationAmplitude(27), 0, 0, 0, 0, 0],
+        volume: 0.41,
+        pan: convertPan(-19),
+    },
+    {
+        frequencyRatio: 2,
+        frequencyOffsetHz: 0.4,
+        depths: [0, 0, 0, 0, 0, 0],
+        volume: 0.2,
+        pan: convertPan(-15),
+    },
+    {
+        frequencyRatio: 1,
+        frequencyOffsetHz: 0,
+        depths: [0, 0, convertModulationAmplitude(33), 0, 0, 0],
+        volume: 0.52,
+        pan: convertPan(28),
+    },
+    {
+        frequencyRatio: 5.4969,
+        frequencyOffsetHz: 2000,
+        depths: [0, 0, 0, 0, 0, 0],
+        volume: 0,
+        pan: 0,
+    },
+    {
+        frequencyRatio: 2,
+        frequencyOffsetHz: 0,
+        depths: [0, 0, 0, 0, convertModulationAmplitude(26), 0],
+        volume: 0.16,
+        pan: 0,
+    },
+];
+
+class Oscillator {
+    /** 位相0.0～1.0 */
+    private phase = 0;
+
+    constructor() { }
+
+    /**
+     * 現在の波形の値を算出します。現状はサイン波のみです。
+     * @param fm 変調
+     * @returns 
+     */
+    getValue(fm = 0): number {
+        return Math.sin(this.phase * PI2 + fm);
+    }
+
+    addPhase(frequency: number) {
+        this.phase += frequency / sampleRate;
+        this.phase %= 1;
+    }
+}
+
+class Operator {
+    oldOpValue = 0;
+    newOpValue = 0;
+    readonly oscillator = new Oscillator();
+
+    constructor(readonly params: OperatorParams) { }
+}
+
 /** キーボードの1音に対応する音を管理するものです。 */
 class SynthNote {
-    private frequency: number; 
-    private oscA: Oscillator;
-    private oscB: Oscillator;
-    private oscC: Oscillator;
-    private oscD: Oscillator;
-    private oscE: Oscillator;
-    private oscF: Oscillator;
-    private mod = new Oscillator(1, 0);
+    private frequency: number;
+    private operators: Operator[];
+    private mod = new Oscillator();
 
     constructor(note: number) {
         this.frequency = midiNoteToFrequency(note);
-        this.oscA = new Oscillator(2, -0.6);
-        this.oscB = new Oscillator();
-        this.oscC = new Oscillator(2, 0.4);
-        this.oscD = new Oscillator();
-        this.oscE = new Oscillator(5.4969, 2000);
-        this.oscF = new Oscillator(2);
+        this.operators = operatorParams.map(params => new Operator(params));
     }
 
     generateSample(output: number[]): void {
         this.mod.addPhase(5);
-        const freq = this.frequency + this.mod.getValue() * 2;
+        const freq = this.frequency /*+ this.mod.getValue() * 2*/;
 
-        this.oscA.addPhase(freq);
-        this.oscB.addPhase(freq);
-        this.oscC.addPhase(freq);
-        this.oscD.addPhase(freq);
-        this.oscE.addPhase(freq);
-        this.oscF.addPhase(freq);
+        for (const op of this.operators) {
+            const params = op.params;
+            op.oscillator.addPhase(freq * params.frequencyRatio + params.frequencyOffsetHz);
+            // モジューレーターは一つ前の値（oldOpValue）を使うと仕組みが簡単になる
+            const mod = params.depths.reduce((prev, depth, opIdx2) => prev + depth * this.operators[opIdx2].oldOpValue, 0);
+            op.newOpValue = op.oscillator.getValue(mod);
+            panning(op.newOpValue * params.volume, params.pan, output);
+        }
 
-        const val = (
-            this.oscA.getValue() * 0.43 + 
-            this.oscB.getValue(this.oscA.getValue() * convertModulationAmplitude(27)) * 0.41 +
-            this.oscC.getValue() * 0.20 +
-            this.oscD.getValue(this.oscC.getValue() * convertModulationAmplitude(33)) * 0.52 +
-            this.oscF.getValue(this.oscE.getValue() * convertModulationAmplitude(27)) * 0.16
-        );
-
-        //output[0] += val;
-        panning(val, testVal, output);
+        // 計算結果をoldへ格納する
+        for (const op of this.operators) {
+            op.oldOpValue = op.newOpValue;
+        }
     }
 }
 
