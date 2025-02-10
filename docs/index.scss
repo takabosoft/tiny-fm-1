@@ -1,16 +1,17 @@
 body {
     font-family: "Noto Sans JP", serif;
     font-size: 16px;
+    font-weight: 400;
     padding-bottom: calc(16px + env(safe-area-inset-bottom));  
 }
 
 h1 {
-    font-weight: 500;
+    font-weight: 700;
     font-size: 24px;
 }
 
 h4 {
-    font-weight: 500;
+    font-weight: 700;
     font-size: 16px;
     margin: 0;
 }
