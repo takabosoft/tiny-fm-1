@@ -1,6 +1,7 @@
 /**
  * Development Build: npx webpack -w
  * Development Server: npx live-server docs
+ * Development Server(HTTPS): npx live-server docs --https=https.js
  * Release Build: npx webpack --mode=production
  */
 
@@ -47,7 +48,8 @@ class PageController {
     private octaveShift = 1;
 
     async start() {
-        document.addEventListener("click", () => this.audioContext.resume(), true);
+        document.addEventListener("pointerdown", () => this.audioContext.resume(), true);
+        document.addEventListener("keydown", () => this.audioContext.resume(), true);
         await this.audioContext.audioWorklet.addModule("synth.bundle.js");
         const myProcessorNode = new AudioWorkletNode(this.audioContext, "SynthProcessor", { outputChannelCount: [2] });
         myProcessorNode.connect(this.audioContext.destination);

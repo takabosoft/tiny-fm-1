@@ -149,9 +149,12 @@ export class VirtualKeyboard extends Component {
 
         const pointerIdToKey = new Map<number, MidiNote>();
 
+        // 虫眼鏡が出たりするのを回避します。
+        el.addEventListener("touchstart", e => e.preventDefault())
+
         el.addEventListener("pointerdown", e => {
-            //console.log("pointerdown", e.pointerId, e.button, e.pointerType);
-            if (el.hasPointerCapture(e.pointerId)) { return; }
+            e.preventDefault();
+            //if (el.hasPointerCapture(e.pointerId)) { return; }
             if (e.pointerType == "button" && e.button != 0) { return; }
             const note = this.hitTest(e);
             if (note != null) {
@@ -162,12 +165,11 @@ export class VirtualKeyboard extends Component {
         });
 
         el.addEventListener("pointermove", e => {
+            e.preventDefault();
             if (el.hasPointerCapture(e.pointerId)) {
-                //console.log("pointermove", e.pointerId, e.button);
                 const oldNote = pointerIdToKey.get(e.pointerId);
                 const newNote = this.hitTest(e);
                 if (oldNote != null && newNote != null && oldNote != newNote) {
-                    //console.log("グリッサンド検出");
                     pointerIdToKey.set(e.pointerId, newNote);
                     this.onKeyUp?.(oldNote);
                     this.onKeyDown?.(newNote);
@@ -175,14 +177,17 @@ export class VirtualKeyboard extends Component {
             }
         });
 
-        el.addEventListener("lostpointercapture", e => {
-            //console.log("lostpointercapture", e.pointerId, e.button);
+        const cancel = (e: PointerEvent) => {
+            e.preventDefault();
             const note = pointerIdToKey.get(e.pointerId);
             if (note != null) {
                 pointerIdToKey.delete(e.pointerId);
                 this.onKeyUp?.(note);
             }
-        });
+        };
+
+        el.addEventListener("lostpointercapture", cancel);
+        el.addEventListener("pointercancel",cancel);
     }
 
     /** 指定したキーが見えるようにスクロールします。 */
