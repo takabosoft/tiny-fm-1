@@ -1,13 +1,17 @@
 body {
     font-family: "Noto Sans JP", serif;
+    font-size: 16px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));  
 }
 
 h1 {
-    font-weight: 800;
+    font-weight: 500;
     font-size: 24px;
 }
 
 h4 {
+    font-weight: 500;
+    font-size: 16px;
     margin: 0;
 }
 
@@ -23,15 +27,18 @@ h4 {
     overflow-x: auto;
     border: 1px solid gray;
     position: relative;
+    background: black;
 }
 
 .virtual-keyboard {
+    overflow: hidden;
     background: black;
     position: relative;
     box-sizing: content-box;
-    touch-action: manipulation;
+    touch-action: none;
+    user-select: none;
 
-    >* {
+    > * {
         pointer-events: none;
     }
 
@@ -73,7 +80,8 @@ h4 {
 
         &::after {
             content: attr(data-text);
-            color: rgba(0, 0, 0, 0.3);
+            color: rgba(0, 0, 0);
+            opacity: 0.3;
             position: absolute;
             bottom: 10px;
             left: 0;
@@ -103,6 +111,7 @@ h4 {
         flex-direction: column;
         align-items: center;
         box-shadow: 0 1px 4px 0px rgba(0, 0, 0, 0.5);
+        background-clip: content-box;
 
         &::before {
             content: "";
@@ -128,9 +137,11 @@ h4 {
 
         &.selected {
             box-shadow: 0 1px 3px 0px rgba(0, 0, 0, 0.5);
+
             &::before {
                 background: linear-gradient(to bottom, rgba(51, 60, 64, 1), rgba(63, 67, 70, 1));
             }
+
             &::after {
                 height: 8%;
             }
