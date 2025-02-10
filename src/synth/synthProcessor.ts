@@ -1,6 +1,8 @@
+import { calcEnvelope, EnvelopeParams, initEnvelopeParams, interpolate } from "./envelope";
 import { MidiNote, SynthMessage } from "./synthMessage";
 
 const PI2 = 2 * Math.PI;
+const fadeOutSec = 0.01;
 let testVal = 0;
 
 function midiNoteToFrequency(note: MidiNote): number {
@@ -34,8 +36,9 @@ function panning(input: number, pan: number, output: number[]) {
 interface OperatorParams {
     readonly frequencyRatio: number,
     readonly frequencyOffsetHz: number,
-    /** モジューレータの振幅 */
-    readonly depths: readonly number[],
+    /** 各オシレーターへどれだけ送るか（受けるほうが一般的かもしれない？） */
+    readonly sendDepths: readonly number[],
+    readonly ampEnvelope: EnvelopeParams,
     readonly volume: number,
     readonly pan: number,
 }
@@ -45,42 +48,48 @@ let operatorParams: readonly OperatorParams[] = [
     {
         frequencyRatio: 2,
         frequencyOffsetHz: -0.6,
-        depths: [0, 0, 0, 0, 0, 0],
+        sendDepths: [0, convertModulationAmplitude(27), 0, 0, 0, 0],
+        ampEnvelope: initEnvelopeParams,
         volume: 0.39,
         pan: convertPan(-21),
     },
     {
         frequencyRatio: 1,
         frequencyOffsetHz: 0,
-        depths: [convertModulationAmplitude(27), 0, 0, 0, 0, 0],
+        sendDepths: [0, 0, 0, 0, 0, 0],
+        ampEnvelope: initEnvelopeParams,
         volume: 0.41,
         pan: convertPan(-19),
     },
     {
         frequencyRatio: 2,
         frequencyOffsetHz: 0.4,
-        depths: [0, 0, 0, 0, 0, 0],
+        sendDepths: [0, 0, 0, convertModulationAmplitude(33), 0, 0],
+        ampEnvelope: initEnvelopeParams,
         volume: 0.2,
         pan: convertPan(-15),
     },
     {
         frequencyRatio: 1,
         frequencyOffsetHz: 0,
-        depths: [0, 0, convertModulationAmplitude(33), 0, 0, 0],
+        sendDepths: [0, 0, 0, 0, 0, 0],
+        ampEnvelope: initEnvelopeParams,
         volume: 0.52,
         pan: convertPan(28),
     },
     {
         frequencyRatio: 5.4969,
         frequencyOffsetHz: 2000,
-        depths: [0, 0, 0, 0, 0, 0],
+        sendDepths: [0, 0, 0, 0, 0, convertModulationAmplitude(26)],
+        ampEnvelope: initEnvelopeParams,
         volume: 0,
         pan: 0,
     },
     {
         frequencyRatio: 2,
         frequencyOffsetHz: 0,
-        depths: [0, 0, 0, 0, convertModulationAmplitude(26), 0],
+        sendDepths: [0, 0, 0, 0, 0, 0],
+        ampEnvelope: initEnvelopeParams,
         volume: 0.16,
         pan: 0,
     },
@@ -117,37 +126,63 @@ class Operator {
 
 /** キーボードの1音に対応する音を管理するものです。 */
 class SynthNote {
-    private frequency: number;
     private operators: Operator[];
     private mod = new Oscillator();
+    private sampleIndex = 0;
 
-    constructor(note: number) {
-        this.frequency = midiNoteToFrequency(note);
+    noteOffSec?: number;
+    fadeOutStartSec?: number;
+
+    constructor(readonly note: MidiNote) {    
         this.operators = operatorParams.map(params => new Operator(params));
     }
 
-    generateSample(output: number[]): void {
-        this.mod.addPhase(5);
-        const freq = this.frequency /*+ this.mod.getValue() * 2*/;
+    get curSec() { return this.sampleIndex / sampleRate; }
 
-        for (const op of this.operators) {
+    generateSample(output: number[]): boolean {
+        this.mod.addPhase(5);
+        const freq = midiNoteToFrequency(this.note /*+ this.mod.getValue() * 0.1*/);
+        const curSec = this.curSec;
+        let isContinue = false;
+
+        this.operators.forEach((op, opIdx) => {
             const params = op.params;
-            op.oscillator.addPhase(freq * params.frequencyRatio + params.frequencyOffsetHz);
             // モジューレーターは一つ前の値（oldOpValue）を使うと仕組みが簡単になる
-            const mod = params.depths.reduce((prev, depth, opIdx2) => prev + depth * this.operators[opIdx2].oldOpValue, 0);
+            const mod = this.operators.reduce((prev, op2) => prev + op2.params.sendDepths[opIdx] * op2.oldOpValue, 0);
             op.newOpValue = op.oscillator.getValue(mod);
-            panning(op.newOpValue * params.volume, params.pan, output);
-        }
+
+            let amp = calcEnvelope(params.ampEnvelope, curSec, this.noteOffSec);
+            if (amp != null) {
+                // ノートが重なる場合の短いフェードアウト処理
+                /*if (this.fadeOutStartSec != null) {
+                    const fadeAmp = interpolate(this.fadeOutStartSec, 1, this.fadeOutStartSec + fadeOutSec, 0, 0, curSec);
+                    if (fadeAmp != null) {
+                        isContinue = true;
+                        amp *= fadeAmp;
+                    }
+                } else*/ {
+                    isContinue = true;
+                }
+                
+                panning(op.newOpValue * amp * params.volume, params.pan, output);
+            }
+
+            op.oscillator.addPhase(freq * params.frequencyRatio + params.frequencyOffsetHz);
+        });
 
         // 計算結果をoldへ格納する
         for (const op of this.operators) {
             op.oldOpValue = op.newOpValue;
         }
+
+        this.sampleIndex++;
+        return isContinue;
     }
 }
 
 export class SynthProcessor extends AudioWorkletProcessor {
     private readonly synthNoteMap = new Map<MidiNote, SynthNote>();
+    //private readonly fadeOutNotes: SynthNote[] = [];
 
     constructor() {
         super();
@@ -160,12 +195,21 @@ export class SynthProcessor extends AudioWorkletProcessor {
         const rightChannel = output[1];
         const masterVolume = 0.2;
 
+
         for (let i = 0; i < leftChannel.length; i++) {
 
             const wave = [0, 0];
-            for (const note of this.synthNoteMap.values()) {
-                note.generateSample(wave);
+            for (const note of Array.from(this.synthNoteMap.values())) {
+                if (!note.generateSample(wave)) {
+                    this.synthNoteMap.delete(note.note);
+                }
             }
+
+            /*for (let j = this.fadeOutNotes.length - 1; j >= 0; j--) {
+                if (!this.fadeOutNotes[j].generateSample(wave)) {
+                    this.fadeOutNotes.splice(j);
+                }
+            }*/
 
             leftChannel[i] = wave[0] * masterVolume;
             rightChannel[i] = wave[1] * masterVolume;
@@ -194,7 +238,11 @@ export class SynthProcessor extends AudioWorkletProcessor {
 
     private noteOn(note: MidiNote): void {
         const oldNote = this.synthNoteMap.get(note);
-        if (oldNote != null) { return; }
+        if (oldNote != null && oldNote.noteOffSec == null) { return; }
+        /*if (oldNote != null && oldNote.noteOffSec != null) {
+            oldNote.fadeOutStartSec = oldNote.curSec;
+            this.fadeOutNotes.push(oldNote);
+        }*/
         this.synthNoteMap.set(note, new SynthNote(note));
     }
 
@@ -203,6 +251,8 @@ export class SynthProcessor extends AudioWorkletProcessor {
         if (synthNote == null) {
             return;
         }
-        this.synthNoteMap.delete(note);
+        if (synthNote.noteOffSec == null) {
+            synthNote.noteOffSec = synthNote.curSec;
+        }
     }
 }
