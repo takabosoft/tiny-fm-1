@@ -6,7 +6,7 @@ import { KnobWithInput } from "./knobWithInput";
 
 const knobSize = 60;
 
-export class OscillatorPanel extends Component {
+export class OperatorPanel extends Component {
     private readonly ratioKnob = new KnobWithInput(knobSize, "Ratio", 0, 64, 1, 1, undefined, 3, () => {});
     private readonly offsetKnob = new KnobWithInput(knobSize, "Offset(Hz)", 0, 9999, 0, 0, undefined, 2, () => {});
     private readonly sendKnobs: KnobWithInput[] = [];
@@ -25,11 +25,11 @@ export class OscillatorPanel extends Component {
         super();
 
         for (let i = 0; i < oscCount; i++) {
-            this.sendKnobs.push(new KnobWithInput(knobSize, `Send ${"ABCDEF"[i]}`, 0, 10, 0, 0, 0, 3, () => {}));
+            this.sendKnobs.push(new KnobWithInput(knobSize, i == oscIdx ? "FeedBack" : `Send ${"ABCDEF"[i]}`, 0, 10, 0, 0, 0, 3, () => {}));
         }
 
-        this.element = $(`<div class="oscillator-panel">`).append(
-            $(`<div class="title">`).text(`OSC ${"ABCDEF"[oscIdx]}`),
+        this.element = $(`<div class="operator-panel">`).append(
+            $(`<div class="title">`).text(`OP ${"ABCDEF"[oscIdx]}`),
             this.ratioKnob.element,
             this.offsetKnob.element,
             $(`<div class="sp">`),

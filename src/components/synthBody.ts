@@ -3,7 +3,7 @@ import { MidiNote } from "../synth/synthMessage";
 import { SynthProcessorWrapper } from "../synth/synthProcessorWrapper";
 import { Component } from "./component";
 import { HeaderPanel } from "./headerPanel";
-import { OscillatorPanel } from "./oscillatorPanel";
+import { OperatorPanel } from "./operatorPanel";
 
 export class SynthBody extends Component {
     private readonly keyNoteDefaultMap = new Map<string, MidiNote>([
@@ -37,7 +37,7 @@ export class SynthBody extends Component {
         );
 
         for (let i = 0; i < oscCount; i++) {
-            this.element.append(new OscillatorPanel(i).element);
+            this.element.append(new OperatorPanel(i).element);
         }
 
         this.listenPCKeyboard();

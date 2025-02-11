@@ -1,24 +1,14 @@
-import { calcEnvelope, EnvelopeParams, initEnvelopeParams, interpolate } from "./envelope";
+import { initOperatorsParams } from "../presets/init";
+import { OperatorsParams } from "../presets/presetEntity";
+import { calcEnvelope, initEnvelopeParams } from "./envelope";
+import { OperatorParams } from "./operatorParams";
 import { MidiNote, SynthMessage } from "./synthMessage";
 
 const PI2 = 2 * Math.PI;
 const fadeOutSec = 0.01;
-let testVal = 0;
 
 function midiNoteToFrequency(note: MidiNote): number {
     return 440 * Math.pow(2, (note - MidiNote.A4) / 12);
-}
-
-function convertModulationAmplitude(v: number): number {
-    return v * v / 4800 * PI2;
-}
-
-function convertModulationAmplitudeForFeedback(v: number): number {
-    return v * v / 9600 * PI2;
-}
-
-function convertPan(pan: number): number {
-    return pan / 99;
 }
 
 /**
@@ -32,68 +22,20 @@ function panning(input: number, pan: number, output: number[]) {
     output[1] += input * (1 + pan) / 2;
 }
 
-/** オペレーターの音色情報の型 */
-interface OperatorParams {
-    readonly frequencyRatio: number,
-    readonly frequencyOffsetHz: number,
-    /** 各オシレーターへどれだけ送るか（受けるほうが一般的かもしれない？） */
-    readonly sendDepths: readonly number[],
-    readonly ampEnvelope: EnvelopeParams,
-    readonly volume: number,
-    readonly pan: number,
+interface OperatorParamsEx extends OperatorParams {
+    /** オペレーターとして全く利用していない場合はtrue */
+    readonly sleep: boolean;
+}
+
+function convertOperatorParamsToEx(params: OperatorParams): OperatorParamsEx {
+    return {
+        ...params,
+        sleep: params.sendDepths.every(d => d == 0) && params.volume == 0,
+    }
 }
 
 /** オペーレータの音色情報です。各ノートからは共通参照とします。 */
-let operatorParams: readonly OperatorParams[] = [
-    {
-        frequencyRatio: 2,
-        frequencyOffsetHz: -0.6,
-        sendDepths: [0, convertModulationAmplitude(27), 0, 0, 0, 0],
-        ampEnvelope: initEnvelopeParams,
-        volume: 0.39,
-        pan: convertPan(-21),
-    },
-    {
-        frequencyRatio: 1,
-        frequencyOffsetHz: 0,
-        sendDepths: [0, 0, 0, 0, 0, 0],
-        ampEnvelope: initEnvelopeParams,
-        volume: 0.41,
-        pan: convertPan(-19),
-    },
-    {
-        frequencyRatio: 2,
-        frequencyOffsetHz: 0.4,
-        sendDepths: [0, 0, 0, convertModulationAmplitude(33), 0, 0],
-        ampEnvelope: initEnvelopeParams,
-        volume: 0.2,
-        pan: convertPan(-15),
-    },
-    {
-        frequencyRatio: 1,
-        frequencyOffsetHz: 0,
-        sendDepths: [0, 0, 0, 0, 0, 0],
-        ampEnvelope: initEnvelopeParams,
-        volume: 0.52,
-        pan: convertPan(28),
-    },
-    {
-        frequencyRatio: 5.4969,
-        frequencyOffsetHz: 2000,
-        sendDepths: [0, 0, 0, 0, 0, convertModulationAmplitude(26)],
-        ampEnvelope: initEnvelopeParams,
-        volume: 0,
-        pan: 0,
-    },
-    {
-        frequencyRatio: 2,
-        frequencyOffsetHz: 0,
-        sendDepths: [0, 0, 0, 0, 0, 0],
-        ampEnvelope: initEnvelopeParams,
-        volume: 0.16,
-        pan: 0,
-    },
-];
+let operatorsParamsEx: OperatorsParams<OperatorParamsEx> = initOperatorsParams.map(p => convertOperatorParamsToEx(p)) as OperatorsParams<OperatorParamsEx>;
 
 class Oscillator {
     /** 位相0.0～1.0 */
@@ -121,7 +63,7 @@ class Operator {
     newOpValue = 0;
     readonly oscillator = new Oscillator();
 
-    constructor(readonly params: OperatorParams) { }
+    constructor(readonly params: OperatorParamsEx) { }
 }
 
 /** キーボードの1音に対応する音を管理するものです。 */
@@ -134,7 +76,7 @@ class SynthNote {
     fadeOutStartSec?: number;
 
     constructor(readonly note: MidiNote) {    
-        this.operators = operatorParams.map(params => new Operator(params));
+        this.operators = operatorsParamsEx.map(params => new Operator(params));
     }
 
     get curSec() { return this.sampleIndex / sampleRate; }
@@ -145,8 +87,11 @@ class SynthNote {
         const curSec = this.curSec;
         let isContinue = false;
 
-        this.operators.forEach((op, opIdx) => {
+        for (let opIdx = 0; opIdx < this.operators.length; opIdx++) {
+            const op = this.operators[opIdx];
             const params = op.params;
+            if (params.sleep) { continue; }
+
             // モジューレーターは一つ前の値（oldOpValue）を使うと仕組みが簡単になる
             const mod = this.operators.reduce((prev, op2) => prev + op2.params.sendDepths[opIdx] * op2.oldOpValue, 0);
             op.newOpValue = op.oscillator.getValue(mod);
@@ -170,7 +115,7 @@ class SynthNote {
             }
 
             op.oscillator.addPhase(freq * params.frequencyRatio + params.frequencyOffsetHz);
-        });
+        }
 
         // 計算結果をoldへ格納する
         for (const op of this.operators) {
@@ -230,9 +175,6 @@ export class SynthProcessor extends AudioWorkletProcessor {
                     break;
                 case "NoteOff":
                     this.noteOff(msg.note);
-                    break;
-                case "Test":
-                    testVal = msg.val;
                     break;
             }
         };
