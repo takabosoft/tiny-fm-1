@@ -149,3 +149,98 @@ h4 {
         }
     }
 }
+
+.knob {
+    --body-inset: 14px;
+    --angle: 0deg; // +で時計回り
+    position: relative;
+    width: fit-content;
+
+    > * {
+        pointer-events: none;
+    }
+
+    > svg {
+        display: block;
+        //position: absolute;
+    }
+
+    > div {
+        content: "";
+        position: absolute;
+        left: var(--body-inset);
+        top: var(--body-inset);
+        right: var(--body-inset);
+        bottom: var(--body-inset);
+        border: 1px solid black;
+        background: linear-gradient(to bottom, white, black);
+        border-radius: 50%;
+        box-shadow: 0 2px 4px 2px rgba(0, 0, 0, 0.5);
+        
+        &::before {
+            content: "";
+            position: absolute;
+            left: 1px;
+            top: 1px;
+            right: 1px;
+            bottom: 1px;
+            border-radius: 50%;
+            background: linear-gradient(to bottom, rgba(48, 48, 48, 0.5), rgba(15, 15, 15, 0.5));
+        }
+
+        > div {
+            position: absolute;
+            left: 4px;
+            top: 4px;
+            right: 4px;
+            bottom: 4px;
+            background: transparent;
+            margin: 0 auto;
+            will-change: transform;
+            transform: rotate(var(--angle));
+
+            &::after {
+                content: "";
+                position: absolute;
+                left: 0;
+                top: 0;
+                right: 0;
+                bottom: 0;
+                width: 2px;
+                height: 35%;
+                background: white;
+                margin: 0 auto;
+                border-radius: 2px;
+            }
+        }
+    }
+}
+
+.knob-with-input {
+    display: flex;
+    flex-direction: column;
+    width: fit-content;
+    align-items: center;
+
+    h5 {
+        font-weight: 400;
+        font-size: 12px;
+        margin: 0 0 0% 0;
+    }
+
+    input {
+        margin-top: -4px;
+        min-width: 0;
+        max-width: 100%;
+        box-sizing: border-box;
+        font-size: 12px;
+        text-align: center;
+        border: none;
+        padding: 2px;
+        background: transparent;
+        
+        &::-webkit-inner-spin-button {
+            appearance: none;
+        }
+    }
+}
