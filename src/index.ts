@@ -5,18 +5,22 @@
  * Release Build: npx webpack --mode=production
  */
 
+import { SynthBody } from "./components/synthBody";
 import { VirtualKeyboard } from "./components/virtualKeyboard";
 import { MidiNote } from "./synth/synthMessage";
 import { SynthProcessorWrapper } from "./synth/synthProcessorWrapper";
 
 $(() => {
     console.log("OK");
-    new PageController().start();
+    try {
+        new PageController().start();
+    } catch (e) {
+        alert(e);
+    }
 });
 
 class PageController {
     private readonly audioContext = new AudioContext();
-    private synthProcessor?: SynthProcessorWrapper;
     private readonly keyNoteDefaultMap = new Map<string, MidiNote>([
         // 白鍵（C3 ~ B3）
         ["z", MidiNote.C3], ["x", MidiNote.D3], ["c", MidiNote.E3],
@@ -39,12 +43,12 @@ class PageController {
     /** PCキーボード情報 */
     private readonly pcKeyNoteStateMap = new Map<string, MidiNote>();
     /** 仮想キーボード */
-    private readonly virtualKeyboard = new VirtualKeyboard({
+    /*private readonly virtualKeyboard = new VirtualKeyboard({
         height: 200,
         //minNote: MidiNote.A_SHARP_MINUS_1,
         onKeyDown: note => this.noteOn(note),
         onKeyUp: note => this.noteOff(note),
-    });
+    });*/
     private octaveShift = 1;
 
     async start() {
@@ -52,8 +56,10 @@ class PageController {
         document.addEventListener("keydown", () => this.audioContext.resume(), true);
         await this.audioContext.audioWorklet.addModule("synth.bundle.js");
         const myProcessorNode = new AudioWorkletNode(this.audioContext, "SynthProcessor", { outputChannelCount: [2] });
+
         myProcessorNode.connect(this.audioContext.destination);
-        this.synthProcessor = new SynthProcessorWrapper(myProcessorNode);
+        const synthBody = new SynthBody(new SynthProcessorWrapper(myProcessorNode));
+        $("main").append(synthBody.element);
 
         /*const slider = $(`<input type="range" min="-1.0" max="1.0" step="0.01" style="width: 200px;">`).on("input", () => {
             //console.log(slider.val() ?? 0);
@@ -62,13 +68,13 @@ class PageController {
         $("body").append($(`<br>`), slider);*/
 
 
-        $("body").append($(`<div class="virtual-keyboard-wrapper">`).append(this.virtualKeyboard.element));
-        this.virtualKeyboard.visibleKey(MidiNote.C4);
+        //$("body").append($(`<div class="virtual-keyboard-wrapper">`).append(this.virtualKeyboard.element));
+        //this.virtualKeyboard.visibleKey(MidiNote.C4);
 
-        this.listenPCKeyboard();
+        //this.listenPCKeyboard();
     }
 
-    private noteOn(note: MidiNote): void {
+    /*private noteOn(note: MidiNote): void {
         if (this.midiNoteOnSet.has(note)) { return; }
         this.midiNoteOnSet.add(note);
         this.synthProcessor?.noteOn(note);
@@ -102,5 +108,5 @@ class PageController {
                 this.pcKeyNoteStateMap.delete(e.key);
             }
         });
-    }
+    }*/
 }
