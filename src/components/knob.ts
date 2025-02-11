@@ -32,7 +32,7 @@ export class Knob extends Component {
             this.appendValueLine(centerValue);
         }
 
-        this.element = $(`<div class="knob">`).append(
+        this.element = $(`<div class="knob" tabindex="-1">`).append(
             this.svg,
             $(`<div>`).append(`<div>`),
         );
@@ -128,6 +128,8 @@ export class Knob extends Component {
 
         el.addEventListener("pointerdown", e => {
             e.preventDefault();
+            this.element.trigger("focus");
+
             if (dragPointerId != null) { return; }
             if (e.pointerType == "button" && e.button != 0) { return; }
 
