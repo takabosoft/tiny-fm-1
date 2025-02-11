@@ -139,9 +139,4 @@ export interface NoteOffMessage {
     note: MidiNote;
 }
 
-export interface TestMessage {
-    type: "Test";
-    val: number;
-}
-
-export type SynthMessage = NoteOnMessage | NoteOffMessage | TestMessage;
+export type SynthMessage = NoteOnMessage | NoteOffMessage;
