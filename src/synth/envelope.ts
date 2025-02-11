@@ -1,3 +1,8 @@
+
+export const releaseSecMin = 0.001;
+export const shapeMin = -10;
+export const shapeMax = +10;
+
 export interface EnvelopeParams {
     /** 音の立ち上がり速度（秒） */
     readonly attackSec: number;
@@ -19,7 +24,7 @@ export const initEnvelopeParams: EnvelopeParams = {
     decaySec: 0,
     decayShape: 0,
     sustain: 1,
-    releaseSec: 0.01,
+    releaseSec: releaseSecMin,
     releaseShape: 0,
 };
 
