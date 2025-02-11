@@ -151,20 +151,22 @@ class SynthNote {
             const mod = this.operators.reduce((prev, op2) => prev + op2.params.sendDepths[opIdx] * op2.oldOpValue, 0);
             op.newOpValue = op.oscillator.getValue(mod);
 
-            let amp = calcEnvelope(params.ampEnvelope, curSec, this.noteOffSec);
-            if (amp != null) {
-                // ノートが重なる場合の短いフェードアウト処理
-                /*if (this.fadeOutStartSec != null) {
-                    const fadeAmp = interpolate(this.fadeOutStartSec, 1, this.fadeOutStartSec + fadeOutSec, 0, 0, curSec);
-                    if (fadeAmp != null) {
+            if (params.volume > 0) {
+                let amp = calcEnvelope(params.ampEnvelope, curSec, this.noteOffSec);
+                if (amp != null) {
+                    // ノートが重なる場合の短いフェードアウト処理
+                    /*if (this.fadeOutStartSec != null) {
+                        const fadeAmp = interpolate(this.fadeOutStartSec, 1, this.fadeOutStartSec + fadeOutSec, 0, 0, curSec);
+                        if (fadeAmp != null) {
+                            isContinue = true;
+                            amp *= fadeAmp;
+                        }
+                    } else*/ {
                         isContinue = true;
-                        amp *= fadeAmp;
                     }
-                } else*/ {
-                    isContinue = true;
+                    
+                    panning(op.newOpValue * amp * params.volume, params.pan, output);
                 }
-                
-                panning(op.newOpValue * amp * params.volume, params.pan, output);
             }
 
             op.oscillator.addPhase(freq * params.frequencyRatio + params.frequencyOffsetHz);

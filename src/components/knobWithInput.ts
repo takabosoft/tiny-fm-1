@@ -40,6 +40,16 @@ export class KnobWithInput extends Component {
         });
     }
 
+    get value() { return this.knob.value; }
+    set value(v) {
+        const oldValue = this.knob.value;
+        this.knob.value = v;
+        if (this.knob.value != oldValue) {
+            this.toInput();
+        }
+    }
+
+    /** のぶの値をInputへ反映します。 */
     private toInput(): void {
         this.input.val(this.knob.value.toFixed(this.fractionDigits));
     }

@@ -1,4 +1,5 @@
 import { Vec2 } from "../geometries/vec2";
+import { highLightColor } from "../synth/const";
 import { Component } from "./component";
 
 /** つまみ */
@@ -24,7 +25,7 @@ export class Knob extends Component {
         this.svg = $(`<svg width="${this.size}" height="${this.size}">`);
 
         this.appendPath("rgba(0, 0, 0, 0.08)", this.strokeWidth, this.buildPathArcD(this.min, this.max));
-        this.arcPath = this.appendPath("#4088D9", this.strokeWidth, "");
+        this.arcPath = this.appendPath(highLightColor, this.strokeWidth, "");
 
         this.appendValueLine(this.min);
         this.appendValueLine(this.max);
