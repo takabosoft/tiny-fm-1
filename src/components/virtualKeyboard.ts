@@ -156,6 +156,14 @@ export class VirtualKeyboard extends Component {
             e.preventDefault();
             //if (el.hasPointerCapture(e.pointerId)) { return; }
             if (e.pointerType == "button" && e.button != 0) { return; }
+
+            // 左クリックしたままコンテキストメニューを出して左クリックでキャンセルした場合
+            const oldNote = pointerIdToKey.get(e.pointerId);
+            if (oldNote != null) {
+                pointerIdToKey.delete(e.pointerId);
+                this.onKeyUp?.(oldNote);
+            }
+
             const note = this.hitTest(e);
             if (note != null) {
                 el.setPointerCapture(e.pointerId);
