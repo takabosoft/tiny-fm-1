@@ -156,4 +156,14 @@ export interface PolyphonyMessage {
     readonly polyphony: number;
 }
 
-export type SynthMessage = NoteOnMessage | NoteOffMessage | PatchMessage | MasterVolumeMessage | PolyphonyMessage;
+export interface PitchBendMessage {
+    readonly type: "PitchBend";
+    readonly pitchBend: number;
+}
+
+export interface ModulationMessage {
+    readonly type: "Modulation";
+    readonly modulation: number;
+}
+
+export type SynthMessage = NoteOnMessage | NoteOffMessage | PatchMessage | MasterVolumeMessage | PolyphonyMessage | PitchBendMessage | ModulationMessage;

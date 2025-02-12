@@ -10,4 +10,8 @@
         }
     ],
     "scss.format.spaceAroundSelectorSeparator": true,
+    "cSpell.words": [
+        "onmidimessage",
+        "Takabo"
+    ],
 }

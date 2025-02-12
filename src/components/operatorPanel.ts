@@ -8,8 +8,8 @@ import { KnobWithInput } from "./knobWithInput";
 const knobSize = 60;
 
 export class OperatorPanel extends Component {
-    private readonly ratioKnob = new KnobWithInput(knobSize, "Ratio", 0, 64, 1, 1, undefined, 3, () => this.onChange());
-    private readonly offsetKnob = new KnobWithInput(knobSize, "Offset(Hz)", 0, 9999, 0, 0, undefined, 2, () => this.onChange());
+    private readonly ratioKnob = new KnobWithInput(knobSize, "Ratio", 0, 64, 1, 1, undefined, 3, () => this.onPatchChange());
+    private readonly offsetKnob = new KnobWithInput(knobSize, "Offset(Hz)", 0, 9999, 0, 0, undefined, 2, () => this.onPatchChange());
     private readonly sendKnobs: KnobWithInput[] = [];
     private readonly ampEnvAttackKnob = new KnobWithInput(knobSize, "Attack(s)", 0, 4, 0, 0, undefined, 3, () => this.onAmpEnvChange());
     private readonly ampEnvAttackShapeKnob = new KnobWithInput(knobSize, "A Shape", shapeMin, shapeMax, 0, 0, 0, 2, () => this.onAmpEnvChange());
@@ -19,14 +19,14 @@ export class OperatorPanel extends Component {
     private readonly ampEnvReleaseKnob = new KnobWithInput(knobSize, "Release(s)", releaseSecMin, 4, releaseSecMin, releaseSecMin, undefined, 3, () => this.onAmpEnvChange());
     private readonly ampEnvReleaseShapeKnob = new KnobWithInput(knobSize, "R Shape", shapeMin, shapeMax, 0, 0, 0, 2, () => this.onAmpEnvChange());
     private readonly envelopePreview = new EnvelopePreview();
-    private readonly volumeKnob = new KnobWithInput(knobSize, "Volume", 0, 1, 0, 0, undefined, 3, () => this.onChange());
-    private readonly panKnob = new KnobWithInput(knobSize, "Pan", -1, 1, 0, 0, 0, 3, () => this.onChange());
+    private readonly volumeKnob = new KnobWithInput(knobSize, "Volume", 0, 1, 0, 0, undefined, 3, () => this.onPatchChange());
+    private readonly panKnob = new KnobWithInput(knobSize, "Pan", -1, 1, 0, 0, 0, 3, () => this.onPatchChange());
 
-    constructor(oscIdx: number, private readonly onChange: () => void) {
+    constructor(oscIdx: number, private readonly onPatchChange: () => void) {
         super();
 
         for (let i = 0; i < oscCount; i++) {
-            this.sendKnobs.push(new KnobWithInput(knobSize, i == oscIdx ? "FeedBack" : `Send ${"ABCDEF"[i]}`, 0, 10, 0, 0, 0, 3, () => this.onChange()));
+            this.sendKnobs.push(new KnobWithInput(knobSize, i == oscIdx ? "FeedBack" : `Send ${"ABCDEF"[i]}`, 0, 10, 0, 0, 0, 3, () => this.onPatchChange()));
         }
 
         this.element = $(`<div class="operator-panel">`).append(
@@ -79,6 +79,8 @@ export class OperatorPanel extends Component {
             pan: this.panKnob.value,
         }
     }
+
+    /** UIのみ変更 */
     set operatorParams(p: OperatorParams) {
         this.ratioKnob.value = p.frequencyRatio;
         this.offsetKnob.value = p.frequencyOffsetHz;
@@ -99,6 +101,6 @@ export class OperatorPanel extends Component {
 
     private onAmpEnvChange(): void {
         this.envelopePreview.render(this.envelopeParams);
-        this.onChange();
+        this.onPatchChange();
     }
 }

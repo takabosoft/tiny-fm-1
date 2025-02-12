@@ -27,5 +27,7 @@ export const initPreset: Preset = {
     name: "Init",
     synthPatch: {
         operatorsParams: initOperatorsParams,
+        bendRange: 2,
+        modulationFrequency: 5,
     }
 }

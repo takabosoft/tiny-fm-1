@@ -26,6 +26,22 @@ export class SynthProcessorWrapper {
     }
 
     /**
+     * ピッチベンド
+     * @param pitchBend -1.0～1.0 
+     */
+    pitchBend(pitchBend: number): void {
+        this.send({ type: "PitchBend", pitchBend });
+    }
+
+    /**
+     * モジュレーション
+     * @param modulation 0.0～1.0 
+     */
+    modulation(modulation: number): void {
+        this.send({ type: "Modulation", modulation });
+    }
+
+    /**
      * パッチの変更
      * @param patch 
      */

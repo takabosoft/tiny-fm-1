@@ -33,7 +33,7 @@ export class SynthBody extends Component {
     /** PCキーボード情報 */
     private readonly pcKeyNoteStateMap = new Map<string, MidiNote>();
     private readonly operatorPanels: OperatorPanel[] = [];
-    private readonly keybaordPanel: KeyboardPanel;
+    private readonly keyboardPanel: KeyboardPanel;
     private pcKeyOctaveShift = 1;
 
     constructor(private readonly synthProcessor: SynthProcessorWrapper) {
@@ -42,16 +42,16 @@ export class SynthBody extends Component {
         for (let i = 0; i < oscCount; i++) {
             this.operatorPanels.push(new OperatorPanel(i, () => this.changePatch(this.synthPatch)));
         }
-        this.keybaordPanel = new KeyboardPanel(synthProcessor, new VirtualKeyboard({
+        this.keyboardPanel = new KeyboardPanel(synthProcessor, new VirtualKeyboard({
             height: 150,
             onKeyDown: note => this.noteOn(note),
             onKeyUp: note => this.noteOff(note),
-        }));
+        }), () => this.changePatch(this.synthPatch));
 
         this.element = $(`<div class="synth-body">`).append(
             new HeaderPanel(synthProcessor).element,
             this.operatorPanels.map(p => p.element),
-            this.keybaordPanel.element,
+            this.keyboardPanel.element,
         );
 
         midiInManager.onChangeCurDevice = () => this.allNoteOff();
@@ -70,7 +70,9 @@ export class SynthBody extends Component {
                 this.operatorPanels[3].operatorParams,
                 this.operatorPanels[4].operatorParams,
                 this.operatorPanels[5].operatorParams,
-            ]
+            ],
+            bendRange: this.keyboardPanel.bendRange,
+            modulationFrequency: this.keyboardPanel.modulationFreq,
         }
     }
 
@@ -80,20 +82,22 @@ export class SynthBody extends Component {
         for (let i = 0; i < oscCount; i++) {
             this.operatorPanels[i].operatorParams = newPatch.operatorsParams[i];
         }
+        this.keyboardPanel.bendRange = newPatch.bendRange;
+        this.keyboardPanel.modulationFreq = newPatch.modulationFrequency;
     }
 
     private noteOn(note: MidiNote): void {
         if (this.midiNoteOnSet.has(note)) { return; }
         this.midiNoteOnSet.add(note);
         this.synthProcessor?.noteOn(note);
-        this.keybaordPanel.virtualKeyboard.selectKey(note, true);
+        this.keyboardPanel.virtualKeyboard.selectKey(note, true);
     }
 
     private noteOff(note: MidiNote): void {
         if (!this.midiNoteOnSet.has(note)) { return; }
         this.midiNoteOnSet.delete(note);
         this.synthProcessor?.noteOff(note);
-        this.keybaordPanel.virtualKeyboard.selectKey(note, false);
+        this.keyboardPanel.virtualKeyboard.selectKey(note, false);
     }
 
     /**
@@ -129,6 +133,6 @@ export class SynthBody extends Component {
 
     /** スクロール */
     scrollVirtualKeyboard(): void {
-        this.keybaordPanel.scrollVirtualKeyboard();
+        this.keyboardPanel.scrollVirtualKeyboard();
     }
 }

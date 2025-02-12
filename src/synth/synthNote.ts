@@ -61,7 +61,7 @@ export class SynthNote {
     noteOffSec?: number;
     fadeOutStartSec?: number;
 
-    constructor(readonly note: MidiNote, patch: SynthPatchEx) {
+    constructor(readonly note: MidiNote, private patch: SynthPatchEx) {
         this.operators = patch.operatorsParams.map(params => new Operator(params));
     }
 
@@ -69,9 +69,10 @@ export class SynthNote {
     get curSec() { return this._sampleIndex / sampleRate; }
 
     /** 波形の値を生成します。グローバル変数の`sampleRate`を使います。 */
-    generateSample(output: number[]): boolean {
-        this.mod.addPhase(5);
-        const freq = midiNoteToFrequency(this.note /*+ this.mod.getValue() * 0.1*/);
+    generateSample(output: number[], pitchBend: number, modulation: number): boolean {
+        const freq = midiNoteToFrequency(this.note + pitchBend + this.mod.getValue() * modulation);
+        this.mod.addPhase(this.patch.modulationFrequency);
+
         const curSec = this.curSec;
         let isContinue = false;
 
@@ -100,7 +101,6 @@ export class SynthNote {
                     }
                 }
             }
-
             op.waveformGen.addPhase(freq * params.frequencyRatio + params.frequencyOffsetHz);
         }
 
@@ -114,6 +114,7 @@ export class SynthNote {
     }
 
     updatePatch(patch: SynthPatchEx): void {
+        this.patch = patch;
         this.operators.forEach((op, i) => op.params = patch.operatorsParams[i]);
     }
 }

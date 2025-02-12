@@ -9,6 +9,8 @@ export class SynthProcessor extends AudioWorkletProcessor {
     private synthPatchEx: SynthPatchEx = convertSynthPatchToEx(initPreset.synthPatch);
     private polyphony = 2;
     private masterVolume = 0.2;
+    private pitchBend = 0;
+    private modulation = 0;
 
     constructor() {
         super();
@@ -34,20 +36,23 @@ export class SynthProcessor extends AudioWorkletProcessor {
         const leftChannel = output[0];
         const rightChannel = output[1];
         
+        const pitchBend = this.pitchBend * this.synthPatchEx.bendRange;
+        const modulation = this.modulation;
+
         const wave = [0, 0];
         for (let i = 0; i < leftChannel.length; i++) {
             wave[0] = wave[1] = 0;
 
             // ノートオン or リリース状態
             for (const note of Array.from(this.synthNoteMap.values())) {
-                if (!note.generateSample(wave)) {
+                if (!note.generateSample(wave, pitchBend, modulation)) {
                     this.synthNoteMap.delete(note.note);
                 }
             }
 
             // 短いフェードアウト
             for (let j = this.fadeOutNotes.length - 1; j >= 0; j--) {
-                if (!this.fadeOutNotes[j].generateSample(wave)) {
+                if (!this.fadeOutNotes[j].generateSample(wave, pitchBend, modulation)) {
                     this.fadeOutNotes.splice(j);
                 }
             }
@@ -70,11 +75,17 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 case "NoteOff":
                     this.onNoteOff(msg.note);
                     break;
+                case "PitchBend":
+                    this.pitchBend = msg.pitchBend;
+                    break;
+                case "Modulation":
+                    this.modulation = msg.modulation;
+                    break;
                 case "Patch":
                     this.onPatch(msg.patch);
                     break;
                 case "MasterVolume":
-                    this.onMasterVolume(msg.volume);
+                    this.masterVolume = msg.volume;
                     break;
                 case "Polyphony":
                     this.onPolyphony(msg.polyphony);
@@ -130,10 +141,6 @@ export class SynthProcessor extends AudioWorkletProcessor {
             note.updatePatch(this.synthPatchEx);
         }
         this.fadeOutNotes.forEach(n => n.updatePatch(this.synthPatchEx));
-    }
-
-    private onMasterVolume(vol: number): void {
-        this.masterVolume = vol;
     }
 
     private onPolyphony(polyphony: number): void {
