@@ -42,7 +42,7 @@ export class SynthBody extends Component {
             this.operatorPanels.push(new OperatorPanel(i, () => this.changePatch(this.synthPatch)));
         }
         this.keybaordPanel = new KeyboardPanel(synthProcessor, new VirtualKeyboard({
-            height: 160,
+            height: 150,
             onKeyDown: note => this.noteOn(note),
             onKeyUp: note => this.noteOff(note),
         }));
@@ -115,6 +115,6 @@ export class SynthBody extends Component {
     }
 
     scrollVirtualKeyboard(): void {
-        this.keybaordPanel.virtualKeyboard.visibleKey(MidiNote.C4);
+        this.keybaordPanel.scrollVirtualKeyboard();
     }
 }

@@ -11,12 +11,14 @@ export class HeaderPanel extends Component {
     constructor(private readonly synthProcessor: SynthProcessorWrapper) {
         super();
         this.element = $(`<div class="header-panel">`).append(
-            $(`<div class="title">`).text("TinyFM1"),
+            $(`<div>`).append(
+                $(`<div class="title">`).text("TinyFM1"),
+                $(`<div class="copyright">(C) <a href="https://takabosoft.com" target="_blank">Takabo Soft</a></div>`),
+            ),
             $(`<div class="align-right">`),
             this.polyphonyKnob.element.css("margin-right", 8),
             this.masterVolumeKnob.element,
-            $(`<div class="sp">`),
-            $(`<div class="copyright">`).text("(C) 2025 Takabo Soft"),
+            //$(`<div class="sp">`),
         );
         
         this.synthProcessor.masterVolume(this.masterVolumeKnob.value);
