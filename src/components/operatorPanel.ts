@@ -26,7 +26,7 @@ export class OperatorPanel extends Component {
         super();
 
         for (let i = 0; i < oscCount; i++) {
-            this.sendKnobs.push(new KnobWithInput(knobSize, i == oscIdx ? "FeedBack" : `Send ${"ABCDEF"[i]}`, 0, 10, 0, 0, 0, 3, () => { }));
+            this.sendKnobs.push(new KnobWithInput(knobSize, i == oscIdx ? "FeedBack" : `Send ${"ABCDEF"[i]}`, 0, 10, 0, 0, 0, 3, () => this.onChange()));
         }
 
         this.element = $(`<div class="operator-panel">`).append(

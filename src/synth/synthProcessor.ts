@@ -125,6 +125,11 @@ export class SynthProcessor extends AudioWorkletProcessor {
     /** パッチを変更します。 */
     private onPatch(path: SynthPatch): void {
         this.synthPatchEx = convertSynthPatchToEx(path);
+
+        for (const note of this.synthNoteMap.values()) {
+            note.updatePatch(this.synthPatchEx);
+        }
+        this.fadeOutNotes.forEach(n => n.updatePatch(this.synthPatchEx));
     }
 
     private onMasterVolume(vol: number): void {
