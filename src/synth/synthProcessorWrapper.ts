@@ -1,4 +1,5 @@
 import { MidiNote, SynthMessage } from "./synthMessage";
+import { SynthPatch } from "./synthPatch";
 
 /** `SynthProcessor`へメッセージを送る係 */
 export class SynthProcessorWrapper {
@@ -8,15 +9,27 @@ export class SynthProcessorWrapper {
         this.node.port.postMessage(msg);
     }
 
-    noteOn(note: MidiNote) {
+    /**
+     * ノートオン
+     * @param note 
+     */
+    noteOn(note: MidiNote): void {
         this.send({ type: "NoteOn", note });
     }
 
-    noteOff(note: MidiNote) {
+    /**
+     * ノートオフ
+     * @param note 
+     */
+    noteOff(note: MidiNote): void {
         this.send({ type: "NoteOff", note });
     }
 
-    test(val: number) {
-        this.send({ type: "Test", val });
+    /**
+     * パッチの変更
+     * @param patch 
+     */
+    patch(patch: SynthPatch): void {
+        this.send({ type: "Patch", patch });
     }
 }

@@ -93,7 +93,7 @@ export class Knob extends Component {
     private appendValueLine(val: number): void {
         const pt1 = this.calcValuePos(val, this.size / 2);
         const pt2 = this.calcValuePos(val, this.size / 2 - this.lineLen);
-        this.appendPath("black", 1, `M${pt1.x} ${pt1.y} L${pt2.x} ${pt2.y}`);
+        this.appendPath("#333", 1, `M${pt1.x} ${pt1.y} L${pt2.x} ${pt2.y}`);
     }
 
     private calcValuePos(val: number, radius: number): Vec2 {

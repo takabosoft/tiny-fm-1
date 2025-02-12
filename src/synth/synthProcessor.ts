@@ -1,11 +1,11 @@
-import { initOperatorsParams } from "../presets/init";
-import { OperatorsParams } from "../presets/presetEntity";
-import { calcEnvelope, initEnvelopeParams } from "./envelope";
+import { initPreset } from "../presets/init";
+import { calcEnvelope, interpolate, releaseSecMin } from "./envelope";
 import { OperatorParams } from "./operatorParams";
 import { MidiNote, SynthMessage } from "./synthMessage";
+import { convertSynthPatchToEx, SynthPatch, SynthPatchEx } from "./synthPatch";
 
 const PI2 = 2 * Math.PI;
-const fadeOutSec = 0.01;
+const fadeOutSec = releaseSecMin;
 
 function midiNoteToFrequency(note: MidiNote): number {
     return 440 * Math.pow(2, (note - MidiNote.A4) / 12);
@@ -27,15 +27,17 @@ interface OperatorParamsEx extends OperatorParams {
     readonly sleep: boolean;
 }
 
-function convertOperatorParamsToEx(params: OperatorParams): OperatorParamsEx {
+/*function convertOperatorParamsToEx(params: OperatorParams): OperatorParamsEx {
     return {
         ...params,
         sleep: params.sendDepths.every(d => d == 0) && params.volume == 0,
     }
-}
+}*/
 
 /** オペーレータの音色情報です。各ノートからは共通参照とします。 */
-let operatorsParamsEx: OperatorsParams<OperatorParamsEx> = initOperatorsParams.map(p => convertOperatorParamsToEx(p)) as OperatorsParams<OperatorParamsEx>;
+//let operatorsParamsEx: OperatorsParams<OperatorParamsEx> = initOperatorsParams.map(p => convertOperatorParamsToEx(p)) as OperatorsParams<OperatorParamsEx>;
+
+
 
 class Oscillator {
     /** 位相0.0～1.0 */
@@ -75,8 +77,8 @@ class SynthNote {
     noteOffSec?: number;
     fadeOutStartSec?: number;
 
-    constructor(readonly note: MidiNote) {    
-        this.operators = operatorsParamsEx.map(params => new Operator(params));
+    constructor(readonly note: MidiNote, patch: SynthPatchEx) {    
+        this.operators = patch.operatorsParams.map(params => new Operator(params));
     }
 
     get curSec() { return this.sampleIndex / sampleRate; }
@@ -97,20 +99,19 @@ class SynthNote {
             op.newOpValue = op.oscillator.getValue(mod);
 
             if (params.volume > 0) {
-                let amp = calcEnvelope(params.ampEnvelope, curSec, this.noteOffSec);
+                const amp = calcEnvelope(params.ampEnvelope, curSec, this.noteOffSec);
                 if (amp != null) {
                     // ノートが重なる場合の短いフェードアウト処理
-                    /*if (this.fadeOutStartSec != null) {
+                    if (this.fadeOutStartSec != null) {
                         const fadeAmp = interpolate(this.fadeOutStartSec, 1, this.fadeOutStartSec + fadeOutSec, 0, 0, curSec);
                         if (fadeAmp != null) {
                             isContinue = true;
-                            amp *= fadeAmp;
+                            panning(op.newOpValue * amp * fadeAmp * params.volume, params.pan, output);
                         }
-                    } else*/ {
+                    } else {
                         isContinue = true;
+                        panning(op.newOpValue * amp * params.volume, params.pan, output);
                     }
-                    
-                    panning(op.newOpValue * amp * params.volume, params.pan, output);
                 }
             }
 
@@ -129,7 +130,8 @@ class SynthNote {
 
 export class SynthProcessor extends AudioWorkletProcessor {
     private readonly synthNoteMap = new Map<MidiNote, SynthNote>();
-    //private readonly fadeOutNotes: SynthNote[] = [];
+    private readonly fadeOutNotes: SynthNote[] = [];
+    private synthPatchEx: SynthPatchEx = convertSynthPatchToEx(initPreset.synthPatch);
 
     constructor() {
         super();
@@ -152,11 +154,11 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 }
             }
 
-            /*for (let j = this.fadeOutNotes.length - 1; j >= 0; j--) {
+            for (let j = this.fadeOutNotes.length - 1; j >= 0; j--) {
                 if (!this.fadeOutNotes[j].generateSample(wave)) {
                     this.fadeOutNotes.splice(j);
                 }
-            }*/
+            }
 
             leftChannel[i] = wave[0] * masterVolume;
             rightChannel[i] = wave[1] * masterVolume;
@@ -176,6 +178,9 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 case "NoteOff":
                     this.noteOff(msg.note);
                     break;
+                case "Patch":
+                    this.patch(msg.patch);
+                    break;
             }
         };
     }
@@ -183,11 +188,13 @@ export class SynthProcessor extends AudioWorkletProcessor {
     private noteOn(note: MidiNote): void {
         const oldNote = this.synthNoteMap.get(note);
         if (oldNote != null && oldNote.noteOffSec == null) { return; }
-        /*if (oldNote != null && oldNote.noteOffSec != null) {
+        if (oldNote != null && oldNote.noteOffSec != null) {
             oldNote.fadeOutStartSec = oldNote.curSec;
             this.fadeOutNotes.push(oldNote);
-        }*/
-        this.synthNoteMap.set(note, new SynthNote(note));
+            this.synthNoteMap.delete(note);
+            //return;
+        }
+        this.synthNoteMap.set(note, new SynthNote(note, this.synthPatchEx));
     }
 
     private noteOff(note: MidiNote): void {
@@ -198,5 +205,10 @@ export class SynthProcessor extends AudioWorkletProcessor {
         if (synthNote.noteOffSec == null) {
             synthNote.noteOffSec = synthNote.curSec;
         }
+    }
+
+    /** パッチを変更します。 */
+    private patch(path: SynthPatch): void {
+        this.synthPatchEx = convertSynthPatchToEx(path);
     }
 }

@@ -215,7 +215,7 @@ main {
     --angle: 0deg; // +で時計回り
     position: relative;
     width: fit-content;
-    cursor: ns-resize;
+    cursor: pointer;
 
     &:focus {
         outline: none;
@@ -227,7 +227,6 @@ main {
 
     > svg {
         display: block;
-        //position: absolute;
     }
 
     > div {

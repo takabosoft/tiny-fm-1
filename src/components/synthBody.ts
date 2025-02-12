@@ -1,5 +1,7 @@
+import { initPreset } from "../presets/init";
 import { oscCount } from "../synth/const";
 import { MidiNote } from "../synth/synthMessage";
+import { SynthPatch } from "../synth/synthPatch";
 import { SynthProcessorWrapper } from "../synth/synthProcessorWrapper";
 import { Component } from "./component";
 import { HeaderPanel } from "./headerPanel";
@@ -27,20 +29,44 @@ export class SynthBody extends Component {
     private readonly midiNoteOnSet = new Set<MidiNote>();
     /** PCキーボード情報 */
     private readonly pcKeyNoteStateMap = new Map<string, MidiNote>();
+    private readonly operatorPanels: OperatorPanel[] = [];
     private pcKeyOctaveShift = 1;
 
     constructor(private readonly synthProcessor: SynthProcessorWrapper) {
         super();
 
-        this.element = $(`<div class="synth-body">`).append(
-            new HeaderPanel().element,
-        );
-
         for (let i = 0; i < oscCount; i++) {
-            this.element.append(new OperatorPanel(i).element);
+            this.operatorPanels.push(new OperatorPanel(i, () => this.changePatch(this.synthPatch)));
         }
 
+        this.element = $(`<div class="synth-body">`).append(
+            new HeaderPanel().element,
+            this.operatorPanels.map(p => p.element),
+        );
+
         this.listenPCKeyboard();
+        this.changePatch(initPreset.synthPatch);
+    }
+
+    private get synthPatch(): SynthPatch {
+        return {
+            operatorsParams: [
+                this.operatorPanels[0].operatorParams,
+                this.operatorPanels[1].operatorParams,
+                this.operatorPanels[2].operatorParams,
+                this.operatorPanels[3].operatorParams,
+                this.operatorPanels[4].operatorParams,
+                this.operatorPanels[5].operatorParams,
+            ]
+        }
+    }
+
+    /** パッチを変更します。プロセッサに情報を送り、UIも更新します。 */
+    private changePatch(newPatch: SynthPatch): void {
+        this.synthProcessor.patch(newPatch);
+        for (let i = 0; i < oscCount; i++) {
+            this.operatorPanels[i].operatorParams = newPatch.operatorsParams[i];
+        }
     }
 
     private noteOn(note: MidiNote): void {

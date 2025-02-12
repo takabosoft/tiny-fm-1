@@ -1,3 +1,5 @@
+import { SynthPatch } from "./synthPatch";
+
 export const enum MidiNote {
     C_MINUS_1 = 0,  // C-1
     C_SHARP_MINUS_1,
@@ -130,13 +132,18 @@ export const enum MidiNote {
 }
 
 export interface NoteOnMessage {
-    type: "NoteOn";
-    note: MidiNote;
+    readonly type: "NoteOn";
+    readonly note: MidiNote;
 }
 
 export interface NoteOffMessage {
-    type: "NoteOff";
-    note: MidiNote;
+    readonly type: "NoteOff";
+    readonly note: MidiNote;
 }
 
-export type SynthMessage = NoteOnMessage | NoteOffMessage;
+export interface PatchMessage {
+    readonly type: "Patch";
+    readonly patch: SynthPatch;
+}
+
+export type SynthMessage = NoteOnMessage | NoteOffMessage | PatchMessage;
