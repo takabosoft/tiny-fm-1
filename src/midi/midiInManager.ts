@@ -56,7 +56,10 @@ class MidiInManager {
 
         const command = ev.data[0] & 0xf0; // チャンネル情報を無視
         if (command === 0x90 && data2 > 0) {
-            this.onNoteOn?.(data1, data2);
+            // 複数タブで同時に利用できるため、アクティブなタブに制限します。
+            if (!document.hidden) {
+                this.onNoteOn?.(data1, data2);
+            }
         } else if (command === 0x80 || (command === 0x90 && data2 === 0)) {
             this.onNoteOff?.(data1);
         } else if (command === 0xE0) {
