@@ -3,7 +3,11 @@ import { SynthPatch } from "./synthPatch";
 
 /** `SynthProcessor`へメッセージを送る係 */
 export class SynthProcessorWrapper {
-    constructor(private readonly node: AudioWorkletNode) {}
+    readonly node: AudioWorkletNode;
+
+    constructor(audioContext: AudioContext) {
+        this.node = new AudioWorkletNode(audioContext, "SynthProcessor", { outputChannelCount: [2] });        
+    }
 
     private send(msg: SynthMessage): void {
         this.node.port.postMessage(msg);
@@ -38,11 +42,6 @@ export class SynthProcessorWrapper {
     /** パッチの変更 */
     set patch(patch: SynthPatch) {
         this.send({ type: "Patch", patch });
-    }
-
-    /** マスターボリュームの変更 */
-    set masterVolume(volume: number) {
-        this.send({ type: "MasterVolume", volume });
     }
 
     /** 最大同時発音数の変更 */

@@ -146,11 +146,6 @@ export interface PatchMessage {
     readonly patch: SynthPatch;
 }
 
-export interface MasterVolumeMessage {
-    readonly type: "MasterVolume";
-    readonly volume: number;
-}
-
 export interface PolyphonyMessage {
     readonly type: "Polyphony";
     readonly polyphony: number;
@@ -166,4 +161,4 @@ export interface ModulationMessage {
     readonly modulation: number;
 }
 
-export type SynthMessage = NoteOnMessage | NoteOffMessage | PatchMessage | MasterVolumeMessage | PolyphonyMessage | PitchBendMessage | ModulationMessage;
+export type SynthMessage = NoteOnMessage | NoteOffMessage | PatchMessage | PolyphonyMessage | PitchBendMessage | ModulationMessage;

@@ -11,6 +11,7 @@ import { OperatorPanel } from "./operatorPanel";
 import { VirtualKeyboard } from "./virtualKeyboard";
 
 export class SynthBody extends Component {
+    private readonly synthProcessor: SynthProcessorWrapper;
     private readonly keyNoteDefaultMap = new Map<string, MidiNote>([
         // 白鍵（C3 ~ B3）
         ["z", MidiNote.C3], ["x", MidiNote.D3], ["c", MidiNote.E3],
@@ -36,20 +37,30 @@ export class SynthBody extends Component {
     private readonly keyboardPanel: KeyboardPanel;
     private pcKeyOctaveShift = 1;
 
-    constructor(private readonly synthProcessor: SynthProcessorWrapper) {
+    constructor(audioContext: AudioContext) {
         super();
+        this.synthProcessor = new SynthProcessorWrapper(audioContext);
 
+        const analyserNode = audioContext.createAnalyser();
+        analyserNode.fftSize = 2048;  // FFTサイズの設定
+        const masterGainNode = audioContext.createGain();
+        
+        // ノードを直列接続
+        this.synthProcessor.node.connect(analyserNode);
+        analyserNode.connect(masterGainNode);
+        masterGainNode.connect(audioContext.destination);
+        
         for (let i = 0; i < oscCount; i++) {
             this.operatorPanels.push(new OperatorPanel(i, () => this.changePatch(this.synthPatch)));
         }
-        this.keyboardPanel = new KeyboardPanel(synthProcessor, new VirtualKeyboard({
+        this.keyboardPanel = new KeyboardPanel(this.synthProcessor, new VirtualKeyboard({
             height: 150,
             onKeyDown: note => this.noteOn(note),
             onKeyUp: note => this.noteOff(note),
         }), () => this.changePatch(this.synthPatch));
 
         this.element = $(`<div class="synth-body">`).append(
-            new HeaderPanel(synthProcessor).element,
+            new HeaderPanel(this.synthProcessor, masterGainNode).element,
             this.operatorPanels.map(p => p.element),
             this.keyboardPanel.element,
         );
@@ -58,11 +69,11 @@ export class SynthBody extends Component {
         midiInManager.onNoteOn = note => this.noteOn(note);
         midiInManager.onNoteOff = note => this.noteOff(note);
         midiInManager.onPitchBend = bend => {
-            synthProcessor.pitchBend = bend;
+            this.synthProcessor.pitchBend = bend;
             this.keyboardPanel.pitchBend = bend;
         };
         midiInManager.onModulation = mod => {
-            synthProcessor.modulation = mod;
+            this.synthProcessor.modulation = mod;
             this.keyboardPanel.modulation = mod;
         };
         this.listenPCKeyboard();
