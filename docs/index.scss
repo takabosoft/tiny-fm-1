@@ -76,6 +76,14 @@ main {
     }
 }
 
+.spectrum-analyzer {
+    border: 1px solid rgb(50, 50, 50);
+    margin-right: 24px;
+    background: rgb(70, 70, 70);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
 .operator-panel {
     border-top: 1px solid rgb(167, 167, 167);
     background: #e6e6e6;
@@ -135,6 +143,26 @@ main {
     }
 }
 
+.preset-selector {
+    box-sizing: border-box;
+    width: 200px;
+    margin-left: 64px;
+    padding: 4px 4px 4px 8px;
+    appearance: none;
+    border: 1px solid rgb(50, 50, 50);
+    border-radius: 2px;
+    color: #fff;
+    font-family: inherit;
+    font-size: 20px;
+    font-weight: 700;
+    background: rgb(70, 70, 70);
+    cursor: pointer;
+
+    &:focus {
+        outline: none;
+    }
+}
+
 .midi-in-selector {
     box-sizing: border-box;
     width: 200px;
@@ -142,11 +170,19 @@ main {
     appearance: none;
     border: 1px solid rgb(167, 167, 167);
     border-radius: 2px;
-    color: inherit;
+    color: #444;
+    background: #eee;
+    font-family: inherit;
+    font-weight: 600;
+    cursor: pointer;
 
     &:focus {
         outline: none;
     }
+}
+
+option {
+    font-size: 14px;
 }
 
 .virtual-keyboard {
@@ -156,6 +192,7 @@ main {
     box-sizing: content-box;
     touch-action: none;
     user-select: none;
+    cursor: pointer;
 
     > * {
         pointer-events: none;
