@@ -8,7 +8,6 @@ export class SynthProcessor extends AudioWorkletProcessor {
     private readonly fadeOutNotes: SynthNote[] = [];
     private synthPatchEx: SynthPatchEx = convertSynthPatchToEx(initPreset.synthPatch);
     private polyphony = 2;
-    private masterVolume = 0.2;
     private pitchBend = 0;
     private modulation = 0;
 
@@ -57,8 +56,8 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 }
             }
 
-            leftChannel[i] = wave[0] * this.masterVolume;
-            rightChannel[i] = wave[1] * this.masterVolume;
+            leftChannel[i] = wave[0];
+            rightChannel[i] = wave[1];
         }
 
         return true;
@@ -83,9 +82,6 @@ export class SynthProcessor extends AudioWorkletProcessor {
                     break;
                 case "Patch":
                     this.onPatch(msg.patch);
-                    break;
-                case "MasterVolume":
-                    this.masterVolume = msg.volume;
                     break;
                 case "Polyphony":
                     this.onPolyphony(msg.polyphony);

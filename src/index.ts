@@ -24,10 +24,8 @@ class PageController {
         document.addEventListener("keydown", () => this.audioContext.resume(), true);
         await midiInManager.initialize();
         await this.audioContext.audioWorklet.addModule("synth.bundle.js");
-        const myProcessorNode = new AudioWorkletNode(this.audioContext, "SynthProcessor", { outputChannelCount: [2] });
-
-        myProcessorNode.connect(this.audioContext.destination);
-        const synthBody = new SynthBody(new SynthProcessorWrapper(myProcessorNode));
+        
+        const synthBody = new SynthBody(this.audioContext);
         $("main").append(synthBody.element);
         synthBody.scrollVirtualKeyboard();
     }

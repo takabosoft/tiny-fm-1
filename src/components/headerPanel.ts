@@ -5,10 +5,10 @@ import { KnobWithInput } from "./knobWithInput";
 const knobSize = 60;
 
 export class HeaderPanel extends Component {
-    private readonly masterVolumeKnob = new KnobWithInput(knobSize, "M.Volume", 0, 0.5, 0.2, 0.2, undefined, 3, vol => this.synthProcessor.masterVolume = vol);
+    private readonly masterVolumeKnob = new KnobWithInput(knobSize, "M.Volume", 0, 0.7, 0.2, 0.2, undefined, 3, vol => this.masterGainNode.gain.value = vol);
     private readonly polyphonyKnob = new KnobWithInput(knobSize, "Polyphony", 1, 99, 10, 10, undefined, 0, poly => this.synthProcessor.polyphony = poly);
 
-    constructor(private readonly synthProcessor: SynthProcessorWrapper) {
+    constructor(private readonly synthProcessor: SynthProcessorWrapper, private readonly masterGainNode: GainNode) {
         super();
         this.element = $(`<div class="header-panel">`).append(
             $(`<div>`).append(
@@ -22,7 +22,7 @@ export class HeaderPanel extends Component {
         );
         
         // 初期値をUIと同期
-        this.synthProcessor.masterVolume = this.masterVolumeKnob.value;
+        masterGainNode.gain.value = this.masterVolumeKnob.value;
         this.synthProcessor.polyphony = this.polyphonyKnob.value;
     }
 }
