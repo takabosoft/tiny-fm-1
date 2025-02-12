@@ -5,7 +5,9 @@ import { SynthPatch } from "../synth/synthPatch";
 import { SynthProcessorWrapper } from "../synth/synthProcessorWrapper";
 import { Component } from "./component";
 import { HeaderPanel } from "./headerPanel";
+import { KeyboardPanel } from "./keyboardPanel";
 import { OperatorPanel } from "./operatorPanel";
+import { VirtualKeyboard } from "./virtualKeyboard";
 
 export class SynthBody extends Component {
     private readonly keyNoteDefaultMap = new Map<string, MidiNote>([
@@ -30,18 +32,25 @@ export class SynthBody extends Component {
     /** PCキーボード情報 */
     private readonly pcKeyNoteStateMap = new Map<string, MidiNote>();
     private readonly operatorPanels: OperatorPanel[] = [];
+    private readonly keybaordPanel: KeyboardPanel;
     private pcKeyOctaveShift = 1;
-
+    
     constructor(private readonly synthProcessor: SynthProcessorWrapper) {
         super();
 
         for (let i = 0; i < oscCount; i++) {
             this.operatorPanels.push(new OperatorPanel(i, () => this.changePatch(this.synthPatch)));
         }
+        this.keybaordPanel = new KeyboardPanel(synthProcessor, new VirtualKeyboard({
+            height: 160,
+            onKeyDown: note => this.noteOn(note),
+            onKeyUp: note => this.noteOff(note),
+        }));
 
         this.element = $(`<div class="synth-body">`).append(
             new HeaderPanel(synthProcessor).element,
             this.operatorPanels.map(p => p.element),
+            this.keybaordPanel.element,
         );
 
         this.listenPCKeyboard();
@@ -73,14 +82,14 @@ export class SynthBody extends Component {
         if (this.midiNoteOnSet.has(note)) { return; }
         this.midiNoteOnSet.add(note);
         this.synthProcessor?.noteOn(note);
-        //this.virtualKeyboard.selectKey(note, true);
+        this.keybaordPanel.virtualKeyboard.selectKey(note, true);
     }
 
     private noteOff(note: MidiNote): void {
         if (!this.midiNoteOnSet.has(note)) { return; }
         this.midiNoteOnSet.delete(note);
         this.synthProcessor?.noteOff(note);
-        //this.virtualKeyboard.selectKey(note, false);
+        this.keybaordPanel.virtualKeyboard.selectKey(note, false);
     }
 
     private listenPCKeyboard(): void {
@@ -103,5 +112,9 @@ export class SynthBody extends Component {
                 this.pcKeyNoteStateMap.delete(e.key);
             }
         });
+    }
+
+    scrollVirtualKeyboard(): void {
+        this.keybaordPanel.virtualKeyboard.visibleKey(MidiNote.C4);
     }
 }
