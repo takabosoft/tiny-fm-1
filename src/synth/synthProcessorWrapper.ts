@@ -25,43 +25,28 @@ export class SynthProcessorWrapper {
         this.send({ type: "NoteOff", note });
     }
 
-    /**
-     * ピッチベンド
-     * @param pitchBend -1.0～1.0 
-     */
-    pitchBend(pitchBend: number): void {
+    /** ピッチベンド変更 */
+    set pitchBend(pitchBend: number) {
         this.send({ type: "PitchBend", pitchBend });
     }
 
-    /**
-     * モジュレーション
-     * @param modulation 0.0～1.0 
-     */
-    modulation(modulation: number): void {
+    /** モジュレーション変更 */
+    set modulation(modulation: number) {
         this.send({ type: "Modulation", modulation });
     }
 
-    /**
-     * パッチの変更
-     * @param patch 
-     */
-    patch(patch: SynthPatch): void {
+    /** パッチの変更 */
+    set patch(patch: SynthPatch) {
         this.send({ type: "Patch", patch });
     }
 
-    /**
-     * マスターボリュームの変更
-     * @param volume 
-     */
-    masterVolume(volume: number): void {
+    /** マスターボリュームの変更 */
+    set masterVolume(volume: number) {
         this.send({ type: "MasterVolume", volume });
     }
 
-    /**
-     * 最大同時発音数の変更
-     * @param polyphony 
-     */
-    polyphony(polyphony: number): void {
+    /** 最大同時発音数の変更 */
+    set polyphony(polyphony: number) {
         this.send({ type: "Polyphony", polyphony: Math.floor(polyphony) });
     }
 }

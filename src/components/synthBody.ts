@@ -57,6 +57,14 @@ export class SynthBody extends Component {
         midiInManager.onChangeCurDevice = () => this.allNoteOff();
         midiInManager.onNoteOn = note => this.noteOn(note);
         midiInManager.onNoteOff = note => this.noteOff(note);
+        midiInManager.onPitchBend = bend => {
+            synthProcessor.pitchBend = bend;
+            this.keyboardPanel.pitchBend = bend;
+        };
+        midiInManager.onModulation = mod => {
+            synthProcessor.modulation = mod;
+            this.keyboardPanel.modulation = mod;
+        };
         this.listenPCKeyboard();
         this.changePatch(initPreset.synthPatch);
     }
@@ -78,7 +86,7 @@ export class SynthBody extends Component {
 
     /** パッチを変更します。プロセッサに情報を送り、UIも更新します。 */
     private changePatch(newPatch: SynthPatch): void {
-        this.synthProcessor.patch(newPatch);
+        this.synthProcessor.patch = newPatch;
         for (let i = 0; i < oscCount; i++) {
             this.operatorPanels[i].operatorParams = newPatch.operatorsParams[i];
         }
