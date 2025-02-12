@@ -18,12 +18,12 @@ main {
     inset: 0;
     background: linear-gradient(220.55deg, #FFF6EB 0%, #DFD1C5 100%);
     overflow: auto;
+    padding-top: 16px;
     padding-bottom: calc(16px + env(safe-area-inset-bottom));
 }
 
 .synth-body {
     box-sizing: border-box;
-    margin-top: 8px;
     margin-left: auto;
     margin-right: auto;
     width: fit-content;
@@ -40,7 +40,7 @@ main {
 
 .header-panel {
     background: linear-gradient(to bottom, #727272, #3f3f3f);
-    color: rgb(209, 209, 209);
+    color: rgb(229, 229, 229);
     display: flex;
     align-items: center;
     padding: 0 4px 0 16px;
@@ -63,6 +63,14 @@ main {
         font-weight: 700;
 
         > a {
+            color: inherit;
+        }
+    }
+
+    .knob-with-input {
+
+        h5,
+        input {
             color: inherit;
         }
     }
@@ -104,6 +112,7 @@ main {
 
     > .grid {
         display: grid;
+        justify-items: center;
         grid-template-columns: auto auto;
     }
 
@@ -118,23 +127,23 @@ main {
             border: 1px solid rgb(167, 167, 167);
             background: black;
             overflow: auto;
-    
+
             &::-webkit-scrollbar {
                 display: none;
             }
         }
-    }   
+    }
 }
 
 .midi-in-selector {
     box-sizing: border-box;
     width: 200px;
-    padding: 1px;
+    padding: 1px 1px 1px 4px;
     appearance: none;
     border: 1px solid rgb(167, 167, 167);
     border-radius: 2px;
     color: inherit;
-    
+
     &:focus {
         outline: none;
     }
@@ -295,7 +304,7 @@ main {
         background: linear-gradient(to bottom, rgba(230, 230, 230, 1), black);
         border-radius: 50%;
         box-shadow: 0 2px 4px 2px rgba(0, 0, 0, 0.5);
-        
+
         &::before {
             content: "";
             position: absolute;
@@ -333,7 +342,8 @@ main {
     align-items: center;
 
     h5 {
-        font-weight: 400;
+        font-weight: 600;
+        color: #444;
         font-size: 12px;
         margin: 0 0 0% 0;
         white-space: nowrap;
@@ -350,8 +360,8 @@ main {
         padding: 2px;
         background: transparent;
         border-radius: 2px;
-        color: inherit;
-        
+        color: #444;
+
         &::-webkit-inner-spin-button {
             appearance: none;
         }
