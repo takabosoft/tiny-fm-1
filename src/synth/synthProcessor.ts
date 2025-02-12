@@ -1,167 +1,59 @@
 import { initPreset } from "../presets/init";
-import { calcEnvelope, interpolate, releaseSecMin } from "./envelope";
-import { OperatorParams } from "./operatorParams";
 import { MidiNote, SynthMessage } from "./synthMessage";
+import { SynthNote } from "./synthNote";
 import { convertSynthPatchToEx, SynthPatch, SynthPatchEx } from "./synthPatch";
-
-const PI2 = 2 * Math.PI;
-const fadeOutSec = releaseSecMin;
-
-function midiNoteToFrequency(note: MidiNote): number {
-    return 440 * Math.pow(2, (note - MidiNote.A4) / 12);
-}
-
-/**
- * 線形パンニングです。
- * @param input モノラル入力
- * @param pan パン(-1.0～1.0)
- * @param output 出力
- */
-function panning(input: number, pan: number, output: number[]) {
-    output[0] += input * (1 - pan) / 2;
-    output[1] += input * (1 + pan) / 2;
-}
-
-interface OperatorParamsEx extends OperatorParams {
-    /** オペレーターとして全く利用していない場合はtrue */
-    readonly sleep: boolean;
-}
-
-/*function convertOperatorParamsToEx(params: OperatorParams): OperatorParamsEx {
-    return {
-        ...params,
-        sleep: params.sendDepths.every(d => d == 0) && params.volume == 0,
-    }
-}*/
-
-/** オペーレータの音色情報です。各ノートからは共通参照とします。 */
-//let operatorsParamsEx: OperatorsParams<OperatorParamsEx> = initOperatorsParams.map(p => convertOperatorParamsToEx(p)) as OperatorsParams<OperatorParamsEx>;
-
-
-
-class Oscillator {
-    /** 位相0.0～1.0 */
-    private phase = 0;
-
-    constructor() { }
-
-    /**
-     * 現在の波形の値を算出します。現状はサイン波のみです。
-     * @param fm 変調
-     * @returns 
-     */
-    getValue(fm = 0): number {
-        return Math.sin(this.phase * PI2 + fm);
-    }
-
-    addPhase(frequency: number) {
-        this.phase += frequency / sampleRate;
-        this.phase %= 1;
-    }
-}
-
-class Operator {
-    oldOpValue = 0;
-    newOpValue = 0;
-    readonly oscillator = new Oscillator();
-
-    constructor(readonly params: OperatorParamsEx) { }
-}
-
-/** キーボードの1音に対応する音を管理するものです。 */
-class SynthNote {
-    private operators: Operator[];
-    private mod = new Oscillator();
-    private sampleIndex = 0;
-
-    noteOffSec?: number;
-    fadeOutStartSec?: number;
-
-    constructor(readonly note: MidiNote, patch: SynthPatchEx) {    
-        this.operators = patch.operatorsParams.map(params => new Operator(params));
-    }
-
-    get curSec() { return this.sampleIndex / sampleRate; }
-
-    generateSample(output: number[]): boolean {
-        this.mod.addPhase(5);
-        const freq = midiNoteToFrequency(this.note /*+ this.mod.getValue() * 0.1*/);
-        const curSec = this.curSec;
-        let isContinue = false;
-
-        for (let opIdx = 0; opIdx < this.operators.length; opIdx++) {
-            const op = this.operators[opIdx];
-            const params = op.params;
-            if (params.sleep) { continue; }
-
-            // モジューレーターは一つ前の値（oldOpValue）を使うと仕組みが簡単になる
-            const mod = this.operators.reduce((prev, op2) => prev + op2.params.sendDepths[opIdx] * op2.oldOpValue, 0);
-            op.newOpValue = op.oscillator.getValue(mod);
-
-            if (params.volume > 0) {
-                const amp = calcEnvelope(params.ampEnvelope, curSec, this.noteOffSec);
-                if (amp != null) {
-                    // ノートが重なる場合の短いフェードアウト処理
-                    if (this.fadeOutStartSec != null) {
-                        const fadeAmp = interpolate(this.fadeOutStartSec, 1, this.fadeOutStartSec + fadeOutSec, 0, 0, curSec);
-                        if (fadeAmp != null) {
-                            isContinue = true;
-                            panning(op.newOpValue * amp * fadeAmp * params.volume, params.pan, output);
-                        }
-                    } else {
-                        isContinue = true;
-                        panning(op.newOpValue * amp * params.volume, params.pan, output);
-                    }
-                }
-            }
-
-            op.oscillator.addPhase(freq * params.frequencyRatio + params.frequencyOffsetHz);
-        }
-
-        // 計算結果をoldへ格納する
-        for (const op of this.operators) {
-            op.oldOpValue = op.newOpValue;
-        }
-
-        this.sampleIndex++;
-        return isContinue;
-    }
-}
 
 export class SynthProcessor extends AudioWorkletProcessor {
     private readonly synthNoteMap = new Map<MidiNote, SynthNote>();
     private readonly fadeOutNotes: SynthNote[] = [];
     private synthPatchEx: SynthPatchEx = convertSynthPatchToEx(initPreset.synthPatch);
+    private polyphony = 2;
+    private masterVolume = 0.2;
 
     constructor() {
         super();
         this.listenMessages();
     }
 
+    /** 一番古いノートを取得します。 */
+    private get oldestNote(): MidiNote | undefined {
+        let oldestNote: MidiNote | undefined = undefined;
+        let sampleIndex = 0;        
+
+        for (const [midiNote, synthNote] of this.synthNoteMap.entries()) {
+            if (oldestNote == null || sampleIndex < synthNote.sampleIndex) {
+                oldestNote = midiNote;
+                sampleIndex = synthNote.sampleIndex;
+            }
+        }
+        return oldestNote;
+    }
+
     process(inputs: Float32Array[][], outputs: Float32Array[][], parameters: Record<string, Float32Array>): boolean {
         const output = outputs[0];
         const leftChannel = output[0];
         const rightChannel = output[1];
-        const masterVolume = 0.2;
-
-
+        
+        const wave = [0, 0];
         for (let i = 0; i < leftChannel.length; i++) {
+            wave[0] = wave[1] = 0;
 
-            const wave = [0, 0];
+            // ノートオン or リリース状態
             for (const note of Array.from(this.synthNoteMap.values())) {
                 if (!note.generateSample(wave)) {
                     this.synthNoteMap.delete(note.note);
                 }
             }
 
+            // 短いフェードアウト
             for (let j = this.fadeOutNotes.length - 1; j >= 0; j--) {
                 if (!this.fadeOutNotes[j].generateSample(wave)) {
                     this.fadeOutNotes.splice(j);
                 }
             }
 
-            leftChannel[i] = wave[0] * masterVolume;
-            rightChannel[i] = wave[1] * masterVolume;
+            leftChannel[i] = wave[0] * this.masterVolume;
+            rightChannel[i] = wave[1] * this.masterVolume;
         }
 
         return true;
@@ -173,31 +65,54 @@ export class SynthProcessor extends AudioWorkletProcessor {
             //console.log(e.data);
             switch (msg.type) {
                 case "NoteOn":
-                    this.noteOn(msg.note);
+                    this.onNoteOn(msg.note);
                     break;
                 case "NoteOff":
-                    this.noteOff(msg.note);
+                    this.onNoteOff(msg.note);
                     break;
                 case "Patch":
-                    this.patch(msg.patch);
+                    this.onPatch(msg.patch);
+                    break;
+                case "MasterVolume":
+                    this.onMasterVolume(msg.volume);
+                    break;
+                case "Polyphony":
+                    this.onPolyphony(msg.polyphony);
                     break;
             }
         };
     }
 
-    private noteOn(note: MidiNote): void {
+    /** 指定された音階のノートがあれば短いフェードアウトで消すようにします。 */
+    private fadeOutNote(note: MidiNote): void {
+        const oldNote = this.synthNoteMap.get(note);
+        if (oldNote == null) { return; }
+        oldNote.fadeOutStartSec = oldNote.curSec;
+        this.fadeOutNotes.push(oldNote);
+        this.synthNoteMap.delete(note);
+    }
+
+    /** 同時発音数上限をチェックし、超えていたらフェードアウトさせます。 */
+    private checkPolyphony(): void {
+        while (this.polyphony < this.synthNoteMap.size) {
+            const oldestNote = this.oldestNote;
+            if (oldestNote == null) { break; }
+            this.fadeOutNote(oldestNote);
+        }
+    }
+
+    private onNoteOn(note: MidiNote): void {
         const oldNote = this.synthNoteMap.get(note);
         if (oldNote != null && oldNote.noteOffSec == null) { return; }
         if (oldNote != null && oldNote.noteOffSec != null) {
-            oldNote.fadeOutStartSec = oldNote.curSec;
-            this.fadeOutNotes.push(oldNote);
-            this.synthNoteMap.delete(note);
+            this.fadeOutNote(note);
             //return;
         }
         this.synthNoteMap.set(note, new SynthNote(note, this.synthPatchEx));
+        this.checkPolyphony();
     }
 
-    private noteOff(note: MidiNote): void {
+    private onNoteOff(note: MidiNote): void {
         const synthNote = this.synthNoteMap.get(note);
         if (synthNote == null) {
             return;
@@ -208,7 +123,16 @@ export class SynthProcessor extends AudioWorkletProcessor {
     }
 
     /** パッチを変更します。 */
-    private patch(path: SynthPatch): void {
+    private onPatch(path: SynthPatch): void {
         this.synthPatchEx = convertSynthPatchToEx(path);
+    }
+
+    private onMasterVolume(vol: number): void {
+        this.masterVolume = vol;
+    }
+
+    private onPolyphony(polyphony: number): void {
+        this.polyphony = polyphony;
+        this.checkPolyphony();
     }
 }

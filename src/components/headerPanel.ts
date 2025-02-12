@@ -1,13 +1,14 @@
+import { SynthProcessorWrapper } from "../synth/synthProcessorWrapper";
 import { Component } from "./component";
 import { KnobWithInput } from "./knobWithInput";
 
 const knobSize = 60;
 
 export class HeaderPanel extends Component {
-    private readonly masterVolumeKnob = new KnobWithInput(knobSize, "M.Volume", 0, 0.5, 0.2, 0.2, undefined, 3, () => {});
-    private readonly polyphonyKnob = new KnobWithInput(knobSize, "Polyphony", 1, 99, 10, 10, undefined, 0, () => {});
+    private readonly masterVolumeKnob = new KnobWithInput(knobSize, "M.Volume", 0, 0.5, 0.2, 0.2, undefined, 3, vol => this.synthProcessor.masterVolume(vol));
+    private readonly polyphonyKnob = new KnobWithInput(knobSize, "Polyphony", 1, 99, 10, 10, undefined, 0, poly => this.synthProcessor.polyphony(poly));
 
-    constructor() {
+    constructor(private readonly synthProcessor: SynthProcessorWrapper) {
         super();
         this.element = $(`<div class="header-panel">`).append(
             $(`<div class="title">`).text("TinyFM1"),
@@ -16,6 +17,9 @@ export class HeaderPanel extends Component {
             this.masterVolumeKnob.element,
             $(`<div class="sp">`),
             $(`<div class="copyright">`).text("(C) 2025 Takabo Soft"),
-        )
+        );
+        
+        this.synthProcessor.masterVolume(this.masterVolumeKnob.value);
+        this.synthProcessor.polyphony(this.polyphonyKnob.value);
     }
 }

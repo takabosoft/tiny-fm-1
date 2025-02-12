@@ -40,7 +40,7 @@ export class SynthBody extends Component {
         }
 
         this.element = $(`<div class="synth-body">`).append(
-            new HeaderPanel().element,
+            new HeaderPanel(synthProcessor).element,
             this.operatorPanels.map(p => p.element),
         );
 
