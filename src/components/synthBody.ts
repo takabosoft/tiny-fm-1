@@ -1,3 +1,4 @@
+import { midiInManager } from "../midi/midiInManager";
 import { initPreset } from "../presets/init";
 import { oscCount } from "../synth/const";
 import { MidiNote } from "../synth/synthMessage";
@@ -34,7 +35,7 @@ export class SynthBody extends Component {
     private readonly operatorPanels: OperatorPanel[] = [];
     private readonly keybaordPanel: KeyboardPanel;
     private pcKeyOctaveShift = 1;
-    
+
     constructor(private readonly synthProcessor: SynthProcessorWrapper) {
         super();
 
@@ -53,6 +54,9 @@ export class SynthBody extends Component {
             this.keybaordPanel.element,
         );
 
+        midiInManager.onChangeCurDevice = () => this.allNoteOff();
+        midiInManager.onNoteOn = note => this.noteOn(note);
+        midiInManager.onNoteOff = note => this.noteOff(note);
         this.listenPCKeyboard();
         this.changePatch(initPreset.synthPatch);
     }
@@ -92,6 +96,15 @@ export class SynthBody extends Component {
         this.keybaordPanel.virtualKeyboard.selectKey(note, false);
     }
 
+    /**
+     * すべてのノートをオフにします。
+     * - MIDI入力デバイスを切り替えるときにノートオンが残る可能性があるため
+     */
+    private allNoteOff(): void {
+        [...this.midiNoteOnSet].forEach(n => this.noteOff(n));
+    }
+
+    /** PCキーボードイベントを監視します。 */
     private listenPCKeyboard(): void {
         document.addEventListener("keydown", e => {
             if (this.pcKeyNoteStateMap.has(e.key)) { return; } // キーボード連打阻止
@@ -114,6 +127,7 @@ export class SynthBody extends Component {
         });
     }
 
+    /** スクロール */
     scrollVirtualKeyboard(): void {
         this.keybaordPanel.scrollVirtualKeyboard();
     }
