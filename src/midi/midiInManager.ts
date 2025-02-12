@@ -11,6 +11,8 @@ class MidiInManager {
     onChangeCurDevice?: () => void;
     onNoteOn?: (note: MidiNote, velocity: number) => void;
     onNoteOff?: (note: MidiNote) => void;
+    onPitchBend?: (pitchBend: number) => void;
+    onModulation?: (mod: number) => void;
 
     constructor() {
     }
@@ -49,15 +51,23 @@ class MidiInManager {
     }
 
     private onMidiMessage(ev: MIDIMessageEvent): void {
-        if (ev.data == null) { return; }
-        const [status, note, velocity] = ev.data;
+        if (ev.data == null || ev.data.length == 0) { return; }
+        const [status, data1, data2] = ev.data;
 
-        const command = status & 0xf0;
-
-        if (command === 0x90 && velocity > 0) {
-            this.onNoteOn?.(note, velocity);
-        } else if (command === 0x80 || (command === 0x90 && velocity === 0)) {
-            this.onNoteOff?.(note);
+        const command = ev.data[0] & 0xf0; // チャンネル情報を無視
+        if (command === 0x90 && data2 > 0) {
+            this.onNoteOn?.(data1, data2);
+        } else if (command === 0x80 || (command === 0x90 && data2 === 0)) {
+            this.onNoteOff?.(data1);
+        } else if (command === 0xE0) {
+            // ピッチベンド
+            const pitchBendValue = (data2 << 7) | data1; // 14bit の値
+            const normalizedValue = (pitchBendValue - 8192) / 8192; // -1.0 〜 +1.0 に正規化
+            this.onPitchBend?.(normalizedValue);
+        } else if (command === 0xB0 && data1 === 1) {
+            // モジュレーション (CC#1)
+            const modulationAmount = data2 / 127; // 0.0 〜 1.0 に正規化
+            this.onModulation?.(modulationAmount);
         }
     }
 }

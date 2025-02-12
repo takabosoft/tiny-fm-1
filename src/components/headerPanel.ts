@@ -5,8 +5,8 @@ import { KnobWithInput } from "./knobWithInput";
 const knobSize = 60;
 
 export class HeaderPanel extends Component {
-    private readonly masterVolumeKnob = new KnobWithInput(knobSize, "M.Volume", 0, 0.5, 0.2, 0.2, undefined, 3, vol => this.synthProcessor.masterVolume(vol));
-    private readonly polyphonyKnob = new KnobWithInput(knobSize, "Polyphony", 1, 99, 10, 10, undefined, 0, poly => this.synthProcessor.polyphony(poly));
+    private readonly masterVolumeKnob = new KnobWithInput(knobSize, "M.Volume", 0, 0.5, 0.2, 0.2, undefined, 3, vol => this.synthProcessor.masterVolume = vol);
+    private readonly polyphonyKnob = new KnobWithInput(knobSize, "Polyphony", 1, 99, 10, 10, undefined, 0, poly => this.synthProcessor.polyphony = poly);
 
     constructor(private readonly synthProcessor: SynthProcessorWrapper) {
         super();
@@ -21,7 +21,8 @@ export class HeaderPanel extends Component {
             //$(`<div class="sp">`),
         );
         
-        this.synthProcessor.masterVolume(this.masterVolumeKnob.value);
-        this.synthProcessor.polyphony(this.polyphonyKnob.value);
+        // 初期値をUIと同期
+        this.synthProcessor.masterVolume = this.masterVolumeKnob.value;
+        this.synthProcessor.polyphony = this.polyphonyKnob.value;
     }
 }
