@@ -19,9 +19,16 @@ export interface OperatorParamsEx extends OperatorParams {
     readonly sleep: boolean;
 }
 
+export const fadeSecForClickNoise = 0.001;
+
 export function convertOperatorParamsToEx(params: OperatorParams): OperatorParamsEx {
     return {
         ...params,
+        ampEnvelope: {
+            ...params.ampEnvelope,
+            attackSec: Math.max(params.ampEnvelope.attackSec, fadeSecForClickNoise), // クリックノイズ防止
+            releaseSec: Math.max(params.ampEnvelope.releaseSec, fadeSecForClickNoise),
+        },
         sleep: params.sendDepths.every(d => d == 0) && params.volume == 0,
     }
 }

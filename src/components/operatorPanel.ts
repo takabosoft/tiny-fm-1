@@ -1,5 +1,5 @@
 import { oscCount } from "../synth/const";
-import { EnvelopeParams, releaseSecMin, shapeMax, shapeMin } from "../synth/envelope";
+import { EnvelopeParams, shapeMax, shapeMin } from "../synth/envelope";
 import { OperatorParams } from "../synth/operatorParams";
 import { Component } from "./component";
 import { EnvelopePreview } from "./envelopePreview";
@@ -16,7 +16,7 @@ export class OperatorPanel extends Component {
     private readonly ampEnvDecayKnob = new KnobWithInput(knobSize, "Decay(s)", 0, 4, 0, 0, undefined, 3, () => this.onAmpEnvChange());
     private readonly ampEnvDecayShapeKnob = new KnobWithInput(knobSize, "D Shape", shapeMin, shapeMax, 0, 0, 0, 2, () => this.onAmpEnvChange());
     private readonly ampEnvSustainKnob = new KnobWithInput(knobSize, "Sustain", 0, 1, 1, 1, undefined, 3, () => this.onAmpEnvChange());
-    private readonly ampEnvReleaseKnob = new KnobWithInput(knobSize, "Release(s)", releaseSecMin, 4, releaseSecMin, releaseSecMin, undefined, 3, () => this.onAmpEnvChange());
+    private readonly ampEnvReleaseKnob = new KnobWithInput(knobSize, "Release(s)", 0, 4, 0, 0, undefined, 3, () => this.onAmpEnvChange());
     private readonly ampEnvReleaseShapeKnob = new KnobWithInput(knobSize, "R Shape", shapeMin, shapeMax, 0, 0, 0, 2, () => this.onAmpEnvChange());
     private readonly envelopePreview = new EnvelopePreview();
     private readonly volumeKnob = new KnobWithInput(knobSize, "Volume", 0, 1, 0, 0, undefined, 3, () => this.onPatchChange());

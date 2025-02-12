@@ -1,5 +1,4 @@
 
-export const releaseSecMin = 0.001;
 export const shapeMin = -10;
 export const shapeMax = +10;
 
@@ -24,7 +23,7 @@ export const initEnvelopeParams: EnvelopeParams = {
     decaySec: 0,
     decayShape: 0,
     sustain: 1,
-    releaseSec: releaseSecMin,
+    releaseSec: 0,
     releaseShape: 0,
 };
 
@@ -47,6 +46,7 @@ export function interpolate(t1Sec: number, v1: number, t2Sec: number, v2: number
 
 export function calcEnvelope(params: EnvelopeParams, curSec: number, noteOffSec: number | undefined): number | undefined {
     if (noteOffSec != null && curSec >= noteOffSec) {
+        if (params.releaseSec == 0) { return 0; }
         const t1Sec = noteOffSec;
         const v1 = calcEnvelope(params, noteOffSec, undefined) ?? 0;
         const t2Sec = t1Sec + params.releaseSec;
