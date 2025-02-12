@@ -2,6 +2,8 @@ import { convertOperatorParamsToEx, OperatorParams, OperatorParamsEx, OperatorsP
 
 export interface SynthPatch<TOperatorParams extends OperatorParams = OperatorParams> {
     readonly operatorsParams: OperatorsParams<TOperatorParams>;
+    readonly bendRange: number;
+    readonly modulationFrequency: number;
 }
 
 export type SynthPatchEx = SynthPatch<OperatorParamsEx>;
@@ -15,6 +17,8 @@ export function convertSynthPatchToEx(patch: SynthPatch): SynthPatchEx {
             convertOperatorParamsToEx(patch.operatorsParams[3]),
             convertOperatorParamsToEx(patch.operatorsParams[4]),
             convertOperatorParamsToEx(patch.operatorsParams[5]),
-        ]
+        ],
+        bendRange: patch.bendRange,
+        modulationFrequency: patch.modulationFrequency,
     }
 }

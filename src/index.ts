@@ -18,7 +18,7 @@ $(() => {
 });
 
 class PageController {
-    private readonly audioContext = new AudioContext();
+    private readonly audioContext = new AudioContext({ latencyHint: "interactive" });
     async start() {
         document.addEventListener("pointerdown", () => this.audioContext.resume(), true);
         document.addEventListener("keydown", () => this.audioContext.resume(), true);

@@ -1,8 +1,10 @@
+import { initPreset } from "./init";
 import { Preset } from "./preset";
 
 export const test: Preset = {
     name: "test",
     synthPatch: {
+        ...initPreset.synthPatch,
         operatorsParams: [
             {
                 frequencyRatio: 2,
