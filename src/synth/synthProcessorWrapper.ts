@@ -32,4 +32,20 @@ export class SynthProcessorWrapper {
     patch(patch: SynthPatch): void {
         this.send({ type: "Patch", patch });
     }
+
+    /**
+     * マスターボリュームの変更
+     * @param volume 
+     */
+    masterVolume(volume: number): void {
+        this.send({ type: "MasterVolume", volume });
+    }
+
+    /**
+     * 最大同時発音数の変更
+     * @param polyphony 
+     */
+    polyphony(polyphony: number): void {
+        this.send({ type: "Polyphony", polyphony: Math.floor(polyphony) });
+    }
 }

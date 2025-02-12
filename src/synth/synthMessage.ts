@@ -146,4 +146,14 @@ export interface PatchMessage {
     readonly patch: SynthPatch;
 }
 
-export type SynthMessage = NoteOnMessage | NoteOffMessage | PatchMessage;
+export interface MasterVolumeMessage {
+    readonly type: "MasterVolume";
+    readonly volume: number;
+}
+
+export interface PolyphonyMessage {
+    readonly type: "Polyphony";
+    readonly polyphony: number;
+}
+
+export type SynthMessage = NoteOnMessage | NoteOffMessage | PatchMessage | MasterVolumeMessage | PolyphonyMessage;
