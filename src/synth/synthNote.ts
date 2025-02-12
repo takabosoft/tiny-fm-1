@@ -1,10 +1,9 @@
-import { calcEnvelope, interpolate, releaseSecMin } from "./envelope";
-import { OperatorParamsEx } from "./operatorParams";
+import { calcEnvelope, interpolate } from "./envelope";
+import { fadeSecForClickNoise, OperatorParamsEx } from "./operatorParams";
 import { MidiNote } from "./synthMessage";
 import { SynthPatchEx } from "./synthPatch";
 
 const PI2 = 2 * Math.PI;
-const fadeOutSec = releaseSecMin;
 
 function midiNoteToFrequency(note: MidiNote): number {
     return 440 * Math.pow(2, (note - MidiNote.A4) / 12);
@@ -90,7 +89,7 @@ export class SynthNote {
                 if (amp != null) {
                     // ノートが重なる場合の短いフェードアウト処理
                     if (this.fadeOutStartSec != null) {
-                        const fadeAmp = interpolate(this.fadeOutStartSec, 1, this.fadeOutStartSec + fadeOutSec, 0, 0, curSec);
+                        const fadeAmp = interpolate(this.fadeOutStartSec, 1, this.fadeOutStartSec + fadeSecForClickNoise, 0, 0, curSec);
                         if (fadeAmp != null) {
                             isContinue = true;
                             panning(op.newOpValue * amp * fadeAmp * params.volume, params.pan, output);

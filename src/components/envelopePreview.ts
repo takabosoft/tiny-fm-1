@@ -43,6 +43,7 @@ export class EnvelopePreview extends Component {
             const y = rc.bottom - rc.height * (calcEnvelope(envParams, sec, noteOffSec) ?? 0)
             d += `L${x} ${y}`;
         }
+        //d += `L${rc.right} ${rc.bottom}`;
 
         const path = $(document.createElementNS("http://www.w3.org/2000/svg", "path")).attr({
             "stroke": highLightColor,
