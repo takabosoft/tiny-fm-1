@@ -49,7 +49,7 @@ class Operator {
     newOpValue = 0;
     readonly waveformGen = new WaveformGenerator();
 
-    constructor(readonly params: OperatorParamsEx) { }
+    constructor(public params: OperatorParamsEx) { }
 }
 
 /** キーボードの1音に対応する音を管理するものです。 */
@@ -61,13 +61,14 @@ export class SynthNote {
     noteOffSec?: number;
     fadeOutStartSec?: number;
 
-    constructor(readonly note: MidiNote, patch: SynthPatchEx) {    
+    constructor(readonly note: MidiNote, patch: SynthPatchEx) {
         this.operators = patch.operatorsParams.map(params => new Operator(params));
     }
 
     get sampleIndex() { return this._sampleIndex; }
     get curSec() { return this._sampleIndex / sampleRate; }
 
+    /** 波形の値を生成します。グローバル変数の`sampleRate`を使います。 */
     generateSample(output: number[]): boolean {
         this.mod.addPhase(5);
         const freq = midiNoteToFrequency(this.note /*+ this.mod.getValue() * 0.1*/);
@@ -110,5 +111,9 @@ export class SynthNote {
 
         this._sampleIndex++;
         return isContinue;
+    }
+
+    updatePatch(patch: SynthPatchEx): void {
+        this.operators.forEach((op, i) => op.params = patch.operatorsParams[i]);
     }
 }

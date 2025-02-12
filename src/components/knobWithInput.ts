@@ -19,7 +19,7 @@ export class KnobWithInput extends Component {
     ) {
         super();
         this.knob = new Knob(size, min, max, value, resetValue, centerValue, newVal => {
-            this.toInput();
+            this.knobToInput();
             onInput(newVal);
         });
         this.element = $(`<div class="knob-with-input">`).append(
@@ -27,13 +27,26 @@ export class KnobWithInput extends Component {
             this.knob.element,
             this.input,
         );
-        this.toInput();
+        this.knobToInput();
 
         this.input.on("change", () => {
             const oldValue = this.knob.value;
-            this.knob.value = parseFloat(this.input.val() + "");
+            const newValue = parseFloat(this.input.val() + "");
+            if (isNaN(newValue)) { 
+                this.knobToInput();
+                return;
+            }
+            this.knob.value = newValue;
             if (this.knob.value != oldValue) {
+                this.knobToInput();
                 onInput(this.knob.value);
+            }
+        }).on("keydown", e => {
+            if (e.key == "Enter") {
+                this.input.trigger("blur");
+            } else if (e.key == "Escape") {
+                this.knobToInput();
+                this.input.trigger("blur");
             }
         }).css({
             width: size,
@@ -45,12 +58,12 @@ export class KnobWithInput extends Component {
         const oldValue = this.knob.value;
         this.knob.value = v;
         if (this.knob.value != oldValue) {
-            this.toInput();
+            this.knobToInput();
         }
     }
 
     /** のぶの値をInputへ反映します。 */
-    private toInput(): void {
+    private knobToInput(): void {
         this.input.val(this.knob.value.toFixed(this.fractionDigits));
     }
 }
