@@ -1,8 +1,8 @@
 import { initPreset } from "./init";
 import { Preset } from "./preset";
 
-export const test: Preset = {
-    name: "test",
+export const organ1Preset: Preset = {
+    name: "Organ 1",
     synthPatch: {
         ...initPreset.synthPatch,
         operatorsParams: [

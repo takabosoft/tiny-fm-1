@@ -2,7 +2,7 @@ import { initEnvelopeParams } from "../synth/envelope";
 import { OperatorParams, OperatorsParams } from "../synth/operatorParams";
 import { Preset } from "./preset";
 
-const operatorParams: OperatorParams = {
+export const initOperatorParams: OperatorParams = {
     frequencyRatio: 1,
     frequencyOffsetHz: 0,
     sendDepths: [0, 0, 0, 0, 0, 0],
@@ -13,14 +13,14 @@ const operatorParams: OperatorParams = {
 
 export const initOperatorsParams: OperatorsParams = [
     {
-        ...operatorParams,
+        ...initOperatorParams,
         volume: 1.0
     },
-    operatorParams,
-    operatorParams,
-    operatorParams,
-    operatorParams,
-    operatorParams,
+    initOperatorParams,
+    initOperatorParams,
+    initOperatorParams,
+    initOperatorParams,
+    initOperatorParams,
 ];
 
 export const initPreset: Preset = {

@@ -8,13 +8,13 @@ import { VirtualKeyboard } from "./virtualKeyboard";
 const knobSize = 60;
 
 export class KeyboardPanel extends Component {
-    private readonly bendRangeKnob = new KnobWithInput(knobSize, "Bend Range", 0, 12, 2, 2, undefined, 3, () => this.onPatchChange());
+    private readonly bendRangeKnob = new KnobWithInput(knobSize, "Bend Range", 0, 12, 2, 2, undefined, 3, () => this.onPatchEdit());
     private readonly pitchBendKnob = new KnobWithInput(knobSize, "Pitch Bend", -1, 1, 0, 0, 0, 3, bend => this.synthProcessor.pitchBend = bend);
-    private readonly modulationFreqKnob = new KnobWithInput(knobSize, "Mod Freq", 1, 10, 5, 5, undefined, 3, () => this.onPatchChange());
+    private readonly modulationFreqKnob = new KnobWithInput(knobSize, "Mod Freq", 1, 10, 5, 5, undefined, 3, () => this.onPatchEdit());
     private readonly modulationKnob = new KnobWithInput(knobSize, "Modulation", 0, 1, 0, 0, undefined, 3, mod => this.synthProcessor.modulation = mod);
     private readonly scrollKnob = new KnobWithInput(knobSize, "Scroll", 0, 127, 64, 64, 64, 0, () => this.scrollVirtualKeyboard());
 
-    constructor(private readonly synthProcessor: SynthProcessorWrapper, readonly virtualKeyboard: VirtualKeyboard, private readonly onPatchChange: () => void) {
+    constructor(private readonly synthProcessor: SynthProcessorWrapper, readonly virtualKeyboard: VirtualKeyboard, private readonly onPatchEdit: () => void) {
         super();
         this.element = $(`<div class="keyboard-panel">`).append(
             $(`<div class="grid">`).append(

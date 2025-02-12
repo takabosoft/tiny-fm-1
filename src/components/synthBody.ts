@@ -1,4 +1,5 @@
 import { midiInManager } from "../midi/midiInManager";
+import { basic1Preset } from "../presets/basic1";
 import { initPreset } from "../presets/init";
 import { oscCount } from "../synth/const";
 import { MidiNote } from "../synth/synthMessage";
@@ -33,6 +34,7 @@ export class SynthBody extends Component {
     private readonly midiNoteOnSet = new Set<MidiNote>();
     /** PCキーボード情報 */
     private readonly pcKeyNoteStateMap = new Map<string, MidiNote>();
+    private readonly headerPanel: HeaderPanel;
     private readonly operatorPanels: OperatorPanel[] = [];
     private readonly keyboardPanel: KeyboardPanel;
     private pcKeyOctaveShift = 1;
@@ -42,7 +44,7 @@ export class SynthBody extends Component {
         this.synthProcessor = new SynthProcessorWrapper(audioContext);
 
         const analyserNode = audioContext.createAnalyser();
-        analyserNode.fftSize = 2048;  // FFTサイズの設定
+        analyserNode.fftSize = 1024;  // FFTサイズの設定
         const masterGainNode = audioContext.createGain();
         
         // ノードを直列接続
@@ -51,16 +53,18 @@ export class SynthBody extends Component {
         masterGainNode.connect(audioContext.destination);
         
         for (let i = 0; i < oscCount; i++) {
-            this.operatorPanels.push(new OperatorPanel(i, () => this.changePatch(this.synthPatch)));
+            this.operatorPanels.push(new OperatorPanel(i, () => this.changePatch(this.synthPatch, false)));
         }
         this.keyboardPanel = new KeyboardPanel(this.synthProcessor, new VirtualKeyboard({
             height: 150,
             onKeyDown: note => this.noteOn(note),
             onKeyUp: note => this.noteOff(note),
-        }), () => this.changePatch(this.synthPatch));
+        }), () => this.changePatch(this.synthPatch, false));
+
+        this.headerPanel = new HeaderPanel(this.synthProcessor, masterGainNode, analyserNode, preset => this.changePatch(preset.synthPatch));
 
         this.element = $(`<div class="synth-body">`).append(
-            new HeaderPanel(this.synthProcessor, masterGainNode).element,
+            this.headerPanel.element,
             this.operatorPanels.map(p => p.element),
             this.keyboardPanel.element,
         );
@@ -77,7 +81,10 @@ export class SynthBody extends Component {
             this.keyboardPanel.modulation = mod;
         };
         this.listenPCKeyboard();
-        this.changePatch(initPreset.synthPatch);
+
+        // 初期状態
+        this.changePatch(basic1Preset.synthPatch);
+        this.headerPanel.presetSelector.selectByName(basic1Preset.name);
     }
 
     private get synthPatch(): SynthPatch {
@@ -96,13 +103,15 @@ export class SynthBody extends Component {
     }
 
     /** パッチを変更します。プロセッサに情報を送り、UIも更新します。 */
-    private changePatch(newPatch: SynthPatch): void {
+    private changePatch(newPatch: SynthPatch, updateUI = true): void {
         this.synthProcessor.patch = newPatch;
-        for (let i = 0; i < oscCount; i++) {
-            this.operatorPanels[i].operatorParams = newPatch.operatorsParams[i];
+        if (updateUI) {
+            for (let i = 0; i < oscCount; i++) {
+                this.operatorPanels[i].operatorParams = newPatch.operatorsParams[i];
+            }
+            this.keyboardPanel.bendRange = newPatch.bendRange;
+            this.keyboardPanel.modulationFreq = newPatch.modulationFrequency;
         }
-        this.keyboardPanel.bendRange = newPatch.bendRange;
-        this.keyboardPanel.modulationFreq = newPatch.modulationFrequency;
     }
 
     private noteOn(note: MidiNote): void {
