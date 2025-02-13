@@ -7,7 +7,6 @@
 
 import { SynthBody } from "./components/synthBody";
 import { midiInManager } from "./midi/midiInManager";
-import { SynthProcessorWrapper } from "./synth/synthProcessorWrapper";
 
 $(() => {
     try {
