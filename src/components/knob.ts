@@ -1,5 +1,5 @@
 import { Vec2 } from "../geometries/vec2";
-import { highLightColor } from "../synth/const";
+import { highLightColor } from "./const";
 import { Component } from "./component";
 
 /** つまみ */
@@ -22,6 +22,7 @@ export class Knob extends Component {
         private readonly onInput: (newVal: number) => void,
     ) {
         super();
+        this._value = this.clampValue(this._value);
         this.svg = $(`<svg width="${this.size}" height="${this.size}">`);
 
         this.appendPath("rgba(0, 0, 0, 0.08)", this.strokeWidth, this.buildPathArcD(this.min, this.max));

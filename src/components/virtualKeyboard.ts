@@ -154,6 +154,7 @@ export class VirtualKeyboard extends Component {
 
         el.addEventListener("pointerdown", e => {
             e.preventDefault();
+            
             //if (el.hasPointerCapture(e.pointerId)) { return; }
             if (e.pointerType == "button" && e.button != 0) { return; }
 

@@ -1,21 +1,23 @@
-import { Preset } from "../presets/preset";
 import { presets } from "../presets/presets";
+import { SynthPatch } from "../synth/synthPatch";
 import { Component } from "./component";
 
+/** プリセットセレクターです。見た目はボタンです。  */
 export class PresetSelector extends Component {
-    constructor(onPresetSelect: (preset: Preset) => void) {
+    constructor(onPresetSelect: (synthPatch: SynthPatch) => void) {
         super();
-        this.element = $(`<select class="preset-selector">`).append(
+        this.element = $(`<select class="btn">`).append(
+            $(`<option>`).text("Preset"),
             presets.map(p => $(`<option>`).text(p.name)),
         ).on("change", () => {
-            onPresetSelect(presets[this.selectedIndex]);
+            if (this.selectedIndex > 0) {
+                onPresetSelect(presets[this.selectedIndex - 1]);
+            }
+            this.selectedIndex = 0;
         });
     }
 
     private get selectEl() { return this.element[0] as HTMLSelectElement; }
     get selectedIndex() { return this.selectEl.selectedIndex; }
-    
-    selectByName(name: string): void {
-        this.selectEl.selectedIndex = presets.findIndex(p => p.name == name);
-    }
+    set selectedIndex(i: number) { this.selectEl.selectedIndex = i; }
 }

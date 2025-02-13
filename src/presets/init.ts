@@ -1,6 +1,6 @@
 import { initEnvelopeParams } from "../synth/envelope";
 import { OperatorParams, OperatorsParams } from "../synth/operatorParams";
-import { Preset } from "./preset";
+import { SynthPatch } from "../synth/synthPatch";
 
 export const initOperatorParams: OperatorParams = {
     frequencyRatio: 1,
@@ -23,11 +23,9 @@ export const initOperatorsParams: OperatorsParams = [
     initOperatorParams,
 ];
 
-export const initPreset: Preset = {
+export const initSynthPatch: SynthPatch = {
     name: "Init",
-    synthPatch: {
-        operatorsParams: initOperatorsParams,
-        bendRange: 2,
-        modulationFrequency: 5,
-    }
+    operatorsParams: initOperatorsParams,
+    bendRange: 2,
+    modulationFrequency: 5,
 }

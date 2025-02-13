@@ -1,24 +1,22 @@
-import { initOperatorParams, initPreset } from "./init";
-import { Preset } from "./preset";
+import { SynthPatch } from "../synth/synthPatch";
+import { initOperatorParams, initSynthPatch } from "./init";
 
-export const basic1Preset: Preset = {
+export const basic1SynthPatch: SynthPatch = {
+    ...initSynthPatch,
     name: "Basic 1",
-    synthPatch: {
-        ...initPreset.synthPatch,
-        operatorsParams: [
-            {
-                ...initOperatorParams,
-                volume: 1,
-            },
-            {
-                ...initOperatorParams,
-                frequencyRatio: 3,
-                sendDepths: [1, 0, 0, 0, 0, 0],
-            },
-            initOperatorParams,
-            initOperatorParams,
-            initOperatorParams,
-            initOperatorParams,
-        ]
-    }
+    operatorsParams: [
+        {
+            ...initOperatorParams,
+            volume: 1,
+        },
+        {
+            ...initOperatorParams,
+            frequencyRatio: 3,
+            sendDepths: [1, 0, 0, 0, 0, 0],
+        },
+        initOperatorParams,
+        initOperatorParams,
+        initOperatorParams,
+        initOperatorParams,
+    ]
 }
