@@ -1,6 +1,7 @@
 import { Rect } from "../geometries/rect";
 import { Vec2 } from "../geometries/vec2";
 import { MidiNote } from "../synth/synthMessage";
+import { blurActiveElement } from "../uiUtils";
 import { Component } from "./component";
 
 export interface VirtualKeyboardOptions {
@@ -154,6 +155,7 @@ export class VirtualKeyboard extends Component {
 
         el.addEventListener("pointerdown", e => {
             e.preventDefault();
+            blurActiveElement();
             
             //if (el.hasPointerCapture(e.pointerId)) { return; }
             if (e.pointerType == "button" && e.button != 0) { return; }

@@ -1,6 +1,7 @@
 import { Vec2 } from "../geometries/vec2";
 import { highLightColor } from "./const";
 import { Component } from "./component";
+import { blurActiveElement } from "../uiUtils";
 
 /** つまみ */
 export class Knob extends Component {
@@ -34,7 +35,7 @@ export class Knob extends Component {
             this.appendValueLine(centerValue);
         }
 
-        this.element = $(`<div class="knob" tabindex="-1">`).append(
+        this.element = $(`<div class="knob">`).append(
             this.svg,
             $(`<div>`).append(`<div>`),
         );
@@ -130,7 +131,7 @@ export class Knob extends Component {
 
         el.addEventListener("pointerdown", e => {
             e.preventDefault();
-            this.element.trigger("focus");
+            blurActiveElement();
 
             if (dragPointerId != null) { return; }
             if (e.pointerType == "button" && e.button != 0) { return; }
