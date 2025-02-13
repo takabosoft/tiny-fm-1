@@ -11,6 +11,8 @@ export interface OperatorParams {
     readonly pan: number,
 }
 
+export const operatorCount = 6;
+
 export type OperatorsParams<T extends OperatorParams = OperatorParams> = [T, T, T, T, T, T];
 
 /** 一部の値をキャッシュするために型を拡張します。 */

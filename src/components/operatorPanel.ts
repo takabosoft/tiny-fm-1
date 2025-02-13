@@ -1,6 +1,5 @@
-import { oscCount } from "../synth/const";
 import { EnvelopeParams, shapeMax, shapeMin } from "../synth/envelope";
-import { OperatorParams } from "../synth/operatorParams";
+import { operatorCount, OperatorParams } from "../synth/operatorParams";
 import { Component } from "./component";
 import { EnvelopePreview } from "./envelopePreview";
 import { KnobWithInput } from "./knobWithInput";
@@ -25,7 +24,7 @@ export class OperatorPanel extends Component {
     constructor(oscIdx: number, private readonly onPatchEdit: () => void) {
         super();
 
-        for (let i = 0; i < oscCount; i++) {
+        for (let i = 0; i < operatorCount; i++) {
             this.sendKnobs.push(new KnobWithInput(knobSize, i == oscIdx ? "FeedBack" : `Send ${"ABCDEF"[i]}`, 0, 10, 0, 0, 0, 3, () => this.onPatchEdit()));
         }
 

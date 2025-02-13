@@ -1,10 +1,10 @@
-import { basic1Preset } from "./basic1";
-import { initPreset } from "./init";
-import { organ1Preset } from "./organ1";
-import { Preset } from "./preset";
+import { SynthPatch } from "../synth/synthPatch";
+import { basic1SynthPatch } from "./basic1";
+import { initSynthPatch } from "./init";
+import { organ1SynthPatch } from "./organ1";
 
-export const presets: readonly Preset[] = [
-    initPreset,
-    basic1Preset,
-    organ1Preset
+export const presets: readonly SynthPatch[] = [
+    initSynthPatch,
+    basic1SynthPatch,
+    organ1SynthPatch,
 ]

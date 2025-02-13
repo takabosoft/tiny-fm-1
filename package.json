@@ -12,6 +12,7 @@
   "dependencies": {
     "@types/audioworklet": "^0.0.69",
     "@types/jquery": "^3.5.32",
+    "@types/pako": "^2.0.3",
     "live-server": "^1.2.2",
     "ts-loader": "^9.5.2",
     "typescript": "^5.7.3",

@@ -21,6 +21,7 @@ class MidiInManager {
         return this.midiInputs.map(i => i.name ?? "");
     }
 
+    get curDeviceName() { return this._curDevice; }
     set curDeviceName(name: string) {
         if (this._curDevice == name) { return; }
         this._curDevice = name;

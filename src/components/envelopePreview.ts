@@ -1,6 +1,6 @@
 import { Rect } from "../geometries/rect";
 import { Vec2 } from "../geometries/vec2";
-import { highLightColor } from "../synth/const";
+import { highLightColor } from "./const";
 import { calcEnvelope, EnvelopeParams } from "../synth/envelope";
 import { Component } from "./component";
 

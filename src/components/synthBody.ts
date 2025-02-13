@@ -1,10 +1,10 @@
 import { midiInManager } from "../midi/midiInManager";
-import { basic1Preset } from "../presets/basic1";
-import { initPreset } from "../presets/init";
-import { oscCount } from "../synth/const";
+import { basic1SynthPatch } from "../presets/basic1";
+import { operatorCount } from "../synth/operatorParams";
 import { MidiNote } from "../synth/synthMessage";
 import { SynthPatch } from "../synth/synthPatch";
 import { SynthProcessorWrapper } from "../synth/synthProcessorWrapper";
+import { buildPatchURL, loadPatchFromCurrentURL, savePatchToCurrentURL } from "../synthPatchSaver";
 import { Component } from "./component";
 import { HeaderPanel } from "./headerPanel";
 import { KeyboardPanel } from "./keyboardPanel";
@@ -46,22 +46,25 @@ export class SynthBody extends Component {
         const analyserNode = audioContext.createAnalyser();
         analyserNode.fftSize = 1024;  // FFTサイズの設定
         const masterGainNode = audioContext.createGain();
-        
+
         // ノードを直列接続
         this.synthProcessor.node.connect(analyserNode);
         analyserNode.connect(masterGainNode);
         masterGainNode.connect(audioContext.destination);
-        
-        for (let i = 0; i < oscCount; i++) {
-            this.operatorPanels.push(new OperatorPanel(i, () => this.changePatch(this.synthPatch, false)));
+
+        for (let i = 0; i < operatorCount; i++) {
+            this.operatorPanels.push(new OperatorPanel(i, () => this.synthProcessor.patch = this.synthPatch));
         }
         this.keyboardPanel = new KeyboardPanel(this.synthProcessor, new VirtualKeyboard({
             height: 150,
             onKeyDown: note => this.noteOn(note),
             onKeyUp: note => this.noteOff(note),
-        }), () => this.changePatch(this.synthPatch, false));
+        }), () => this.synthProcessor.patch = this.synthPatch);
 
-        this.headerPanel = new HeaderPanel(this.synthProcessor, masterGainNode, analyserNode, preset => this.changePatch(preset.synthPatch));
+        this.headerPanel = new HeaderPanel(this.synthProcessor, masterGainNode, analyserNode, newPatch => {
+            this.updateUIFromSynthPatch(newPatch);
+            this.synthProcessor.patch = this.synthPatch;
+        }, () => savePatchToCurrentURL(this.synthPatch), () => this.sharePatchToX());
 
         this.element = $(`<div class="synth-body">`).append(
             this.headerPanel.element,
@@ -81,14 +84,13 @@ export class SynthBody extends Component {
             this.keyboardPanel.modulation = mod;
         };
         this.listenPCKeyboard();
-
-        // 初期状態
-        this.changePatch(basic1Preset.synthPatch);
-        this.headerPanel.presetSelector.selectByName(basic1Preset.name);
+        this.initializeSynthPatch();
     }
 
+    /** UIからパッチ情報を作成します。値はクランプされています。 */
     private get synthPatch(): SynthPatch {
         return {
+            name: this.headerPanel.patchNameInput.name,
             operatorsParams: [
                 this.operatorPanels[0].operatorParams,
                 this.operatorPanels[1].operatorParams,
@@ -102,16 +104,28 @@ export class SynthBody extends Component {
         }
     }
 
-    /** パッチを変更します。プロセッサに情報を送り、UIも更新します。 */
-    private changePatch(newPatch: SynthPatch, updateUI = true): void {
-        this.synthProcessor.patch = newPatch;
-        if (updateUI) {
-            for (let i = 0; i < oscCount; i++) {
-                this.operatorPanels[i].operatorParams = newPatch.operatorsParams[i];
-            }
-            this.keyboardPanel.bendRange = newPatch.bendRange;
-            this.keyboardPanel.modulationFreq = newPatch.modulationFrequency;
+    /** 最初のパッチを準備し、UIやプロセッサへ送ります。 */
+    private initializeSynthPatch(): void {
+        const loadPatch = loadPatchFromCurrentURL();
+        if (loadPatch != null) {
+            // ロードしたパッチは構造は正常だが、値が異常な可能性があるため、UIへ反映（ここでクランプされる）し、そこからシンセパッチを作り直してプロセッサへ送ります。
+            this.updateUIFromSynthPatch(loadPatch);
+            this.synthProcessor.patch = this.synthPatch;
+        } else {
+            const patch = basic1SynthPatch;
+            this.synthProcessor.patch = patch;
+            this.updateUIFromSynthPatch(patch);
         }
+    }
+
+    /** パッチの内容をUIへ反映します。各UIで値はクランプされます。 */
+    private updateUIFromSynthPatch(newPatch: SynthPatch): void {
+        this.headerPanel.patchNameInput.name = newPatch.name;
+        for (let i = 0; i < operatorCount; i++) {
+            this.operatorPanels[i].operatorParams = newPatch.operatorsParams[i];
+        }
+        this.keyboardPanel.bendRange = newPatch.bendRange;
+        this.keyboardPanel.modulationFreq = newPatch.modulationFrequency;
     }
 
     private noteOn(note: MidiNote): void {
@@ -139,6 +153,7 @@ export class SynthBody extends Component {
     /** PCキーボードイベントを監視します。 */
     private listenPCKeyboard(): void {
         document.addEventListener("keydown", e => {
+            if (e.target instanceof HTMLInputElement) { return; } // Inputでの発動を阻止
             if (this.pcKeyNoteStateMap.has(e.key)) { return; } // キーボード連打阻止
             let note = this.keyNoteDefaultMap.get(e.key);
             if (note != null) {
@@ -157,6 +172,16 @@ export class SynthBody extends Component {
                 this.pcKeyNoteStateMap.delete(e.key);
             }
         });
+    }
+
+    /** パッチURLをXへ投稿 */
+    private sharePatchToX(): void {
+        const patchUrl = buildPatchURL(this.synthPatch);
+        if (patchUrl == null) { return; }
+        const url = new URL("https://x.com/intent/post");
+        url.searchParams.append("text", `#tiny_fm_1 ${this.headerPanel.patchNameInput.name}`);
+        url.searchParams.append("url", patchUrl);
+        window.open(url.toString(), "_blank");
     }
 
     /** スクロール */

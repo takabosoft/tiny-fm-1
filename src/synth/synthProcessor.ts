@@ -1,4 +1,4 @@
-import { initPreset } from "../presets/init";
+import { initSynthPatch } from "../presets/init";
 import { MidiNote, SynthMessage } from "./synthMessage";
 import { SynthNote } from "./synthNote";
 import { convertSynthPatchToEx, SynthPatch, SynthPatchEx } from "./synthPatch";
@@ -6,7 +6,7 @@ import { convertSynthPatchToEx, SynthPatch, SynthPatchEx } from "./synthPatch";
 export class SynthProcessor extends AudioWorkletProcessor {
     private readonly synthNoteMap = new Map<MidiNote, SynthNote>();
     private readonly fadeOutNotes: SynthNote[] = [];
-    private synthPatchEx: SynthPatchEx = convertSynthPatchToEx(initPreset.synthPatch);
+    private synthPatchEx: SynthPatchEx = convertSynthPatchToEx(initSynthPatch);
     private polyphony = 2;
     private pitchBend = 0;
     private modulation = 0;

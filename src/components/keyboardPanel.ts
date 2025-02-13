@@ -1,4 +1,3 @@
-import { MidiNote } from "../synth/synthMessage";
 import { SynthProcessorWrapper } from "../synth/synthProcessorWrapper";
 import { Component } from "./component";
 import { KnobWithInput } from "./knobWithInput";
