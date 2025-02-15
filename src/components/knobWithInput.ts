@@ -37,8 +37,8 @@ export class KnobWithInput extends Component {
                 return;
             }
             this.knob.value = newValue;
+            this.knobToInput();
             if (this.knob.value != oldValue) {
-                this.knobToInput();
                 onInput(this.knob.value);
             }
         }).on("keydown", e => {
